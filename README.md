@@ -28,6 +28,8 @@ $ cf /etc /bin
         942     /bin
 ```
 
+Optionally recurses down trees, and can omit directories from the counts.
+
 ## `mmv`
 
 Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace`
@@ -37,10 +39,16 @@ groups, and has a no-op mode for safe experimentation.
 ```
 $ ls
 file1.txt  file2.txt  file3.txt
-$ mmv file renamed_file *
+$ mmv -v file renamed_file *
+file1.txt file1.txt -> renamed_file1.txt
+file2.txt file2.txt -> renamed_file2.txt
+file3.txt file3.txt -> renamed_file3.txt
 $ ls
 renamed_file1.txt  renamed_file2.txt  renamed_file3.txt
 $ mmv "re(\w+)(\d).txt" "number_\${2}_\${1}.text" *
 $ ls
 number_1_named_file.text  number_2_named_file.text  number_3_named_file.text
 ```
+
+Has clobber-protection, multi-replace, and various levels of verbosity.
+`--help` explains.

@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::fs::ReadDir;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 #[clap(version, about = "Counts the files in the given directories", long_about = None)]
