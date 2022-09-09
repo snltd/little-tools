@@ -1,29 +1,46 @@
-# `mmv`
+# Little Tools
 
-`mmv` is a batch renamer. It takes a find-and-replace pair, and subs `find`
-with `replace` in the names of the given files. It supports regular
-expressions and capture groups, and has a noop for safe experimentation.
+A bunch of little command-line tools that I find useful. They are Rust
+rewrites, done primarily as a learning exercise, so you trust them at your
+peril.
+
+## `cs`
+
+Flattens fancy filenames in to `lowercase_ascii_with_underscores`.
 
 ```
-USAGE:
-    mmv [OPTIONS] <PATTERN> <REPLACE> [FILES]...
-
-ARGS:
-    <PATTERN>     pattern to replace. Supports Rust regexes
-    <REPLACE>     string that should replace <pattern>. Supports Rust capture groups, like ${1}
-    <FILES>...    files to rename
-
-OPTIONS:
-    -a, --all                    replace all occurrences of pattern
-    -c, --clobber                overwrite existing files
-    -f, --full                   show fully qualified pathnames in verbose output
-    -h, --help                   Print help information
-    -m, --match <REPLACE_NTH>    only replace the nth match (starts at 0)
-    -n, --noop                   just print the rename operations
-    -t, --terse                  with -n, on print the target basenames
-    -v, --verbose                be verbose
-    -V, --version                Print version information
+$ ls
+90°.hot  'This Is A File.TXT'
+$ cs *
+90°.hot -> 90.hot
+This Is A File.TXT -> this_is_a_file.txt
+$ ls
+90.hot  this_is_a_file.txt
 ```
 
-`mmv` is one of the first things I have written in Rust, so you might be smart
-not to trust it. It's a bit sketchy.
+## `cf`
+
+Counts files in directories, presenting info like `wc`, so it's easy to sort.
+
+```
+$ cf /etc /bin
+        186     /etc
+        942     /bin
+```
+
+## `mmv`
+
+Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace`
+in the names of the given files. Supports regular expressions and capture
+groups, and has a no-op mode for safe experimentation.
+
+```
+$ ls
+file1.txt  file2.txt  file3.txt
+$ mmv file renamed_file *
+$ ls
+renamed_file1.txt  renamed_file2.txt  renamed_file3.txt
+$ mmv "re(\w+)(\d).txt" "number_\${2}_\${1}.text" *
+$ ls
+number_1_named_file.text  number_2_named_file.text  number_3_named_file.text
+```
