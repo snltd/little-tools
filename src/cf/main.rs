@@ -90,59 +90,37 @@ mod test {
 
     #[test]
     fn test_count_files_recurse() {
-        let empty_dir = PathBuf::from("spec/resources/c");
-
-        std::fs::create_dir_all(&empty_dir).unwrap();
-
-        assert_eq!(Some(0), count_files(&empty_dir, true, false));
         assert_eq!(
             Some(2),
-            count_files(&PathBuf::from("spec/resources/a"), true, true)
-        );
-        assert_eq!(
-            Some(3),
-            count_files(&PathBuf::from("spec/resources/a"), true, false)
+            count_files(&PathBuf::from("tests/data/cf/a"), true, true)
         );
         assert_eq!(
             Some(6),
-            count_files(&PathBuf::from("spec/resources/b"), true, true)
+            count_files(&PathBuf::from("tests/data/cf/b"), true, true)
         );
         assert_eq!(
             Some(8),
-            count_files(&PathBuf::from("spec/resources/b"), true, false)
+            count_files(&PathBuf::from("tests/data/cf/b"), true, false)
         );
-
-        std::fs::remove_dir(empty_dir).unwrap();
     }
 
     #[test]
     fn test_count_files() {
-        let empty_dir = PathBuf::from("spec/resources/d");
-
-        std::fs::create_dir_all(&empty_dir).unwrap();
-
-        assert_eq!(Some(0), count_files(&empty_dir, false, false));
         assert_eq!(
             Some(2),
-            count_files(&PathBuf::from("spec/resources/a"), false, true)
-        );
-        assert_eq!(
-            Some(3),
-            count_files(&PathBuf::from("spec/resources/a"), false, false)
+            count_files(&PathBuf::from("tests/data/cf/a"), false, true)
         );
         assert_eq!(
             Some(2),
-            count_files(&PathBuf::from("spec/resources/b"), false, true)
+            count_files(&PathBuf::from("tests/data/cf/b"), false, true)
         );
         assert_eq!(
             Some(4),
-            count_files(&PathBuf::from("spec/resources/b"), false, false)
+            count_files(&PathBuf::from("tests/data/cf/b"), false, false)
         );
         assert_eq!(
             None,
-            count_files(&PathBuf::from("spec/resources/z"), false, false)
+            count_files(&PathBuf::from("tests/data/cf/z"), false, false)
         );
-
-        std::fs::remove_dir(empty_dir).unwrap();
     }
 }
