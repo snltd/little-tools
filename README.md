@@ -1,5 +1,7 @@
 # Little Tools
 
+[![Test](https://github.com/snltd/little_tools/actions/workflows/test.yml/badge.svg)](https://github.com/snltd/little_tools/actions/workflows/test.yml)
+
 A bunch of little command-line tools that I find useful. They are Rust
 rewrites, done primarily as a learning exercise, so you trust them at your
 peril.
