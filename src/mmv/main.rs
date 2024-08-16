@@ -50,6 +50,10 @@ struct Args {
     /// be verbose
     #[clap(short, long)]
     verbose: bool,
+
+    /// print arguments for git mv
+    #[clap(short = 'G', long = "git", conflicts_with = "noop")]
+    git: bool,
 }
 
 fn main() {
@@ -78,12 +82,13 @@ fn process(args: &Args) {
 
 fn process_file(file: PathBuf, args: &Args) -> Result<String, String> {
     let target = target_path(file.clone(), args)?;
-
     if target == file {
         return Ok(String::from(": no change"));
     }
 
-    if !args.noop {
+    if args.git {
+        println!("git mv {} {}", file.display(), target.display());
+    } else if !args.noop {
         rename(file.clone(), target.clone(), args.clobber)?;
     }
 
@@ -252,6 +257,7 @@ mod test {
             replace: String::from("new"),
             clobber: false,
             full_names: false,
+            git: false,
             noop: true,
             verbose: true,
             replace_all: false,

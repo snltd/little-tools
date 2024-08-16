@@ -54,3 +54,5 @@ number_1_named_file.text  number_2_named_file.text  number_3_named_file.text
 
 Has clobber-protection, multi-replace, and various levels of verbosity.
 `--help` explains.
+
+`--git` prints out `git mv` commands, which you can paste back into your shell.
