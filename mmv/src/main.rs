@@ -208,7 +208,7 @@ mod test {
     #[test]
     fn target_requires_change_of_first_match() {
         assert_eq!(
-            Ok(PathBuf::from("tests/data/mmv/new_file_file.txt")),
+            Ok(PathBuf::from("tests/data/new_file_file.txt")),
             target_path(default_file(), &default_args())
         );
     }
@@ -219,7 +219,7 @@ mod test {
         args.replace_nth = Some(1);
 
         assert_eq!(
-            Ok(PathBuf::from("tests/data/mmv/file_new_file.txt")),
+            Ok(PathBuf::from("tests/data/file_new_file.txt")),
             target_path(default_file(), &args)
         );
     }
@@ -229,7 +229,7 @@ mod test {
         args.replace_all = true;
 
         assert_eq!(
-            Ok(PathBuf::from("tests/data/mmv/new_new_new.txt")),
+            Ok(PathBuf::from("tests/data/new_new_new.txt")),
             target_path(default_file(), &args)
         );
     }
@@ -242,13 +242,13 @@ mod test {
         args.replace_all = true;
 
         assert_eq!(
-            Ok(PathBuf::from("tests/data/mmv/bill_bill_bill.txt")),
+            Ok(PathBuf::from("tests/data/bill_bill_bill.txt")),
             target_path(default_file(), &args)
         );
     }
 
     fn default_file() -> PathBuf {
-        PathBuf::from("tests/data/mmv/file_file_file.txt")
+        PathBuf::from("tests/data/file_file_file.txt")
     }
 
     fn default_args() -> Args {

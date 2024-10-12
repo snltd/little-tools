@@ -92,15 +92,15 @@ mod test {
     fn test_count_files_recurse() {
         assert_eq!(
             Some(2),
-            count_files(&PathBuf::from("tests/data/cf/a"), true, true)
+            count_files(&PathBuf::from("tests/data/a"), true, true)
         );
         assert_eq!(
             Some(6),
-            count_files(&PathBuf::from("tests/data/cf/b"), true, true)
+            count_files(&PathBuf::from("tests/data/b"), true, true)
         );
         assert_eq!(
             Some(8),
-            count_files(&PathBuf::from("tests/data/cf/b"), true, false)
+            count_files(&PathBuf::from("tests/data/b"), true, false)
         );
     }
 
@@ -108,19 +108,19 @@ mod test {
     fn test_count_files() {
         assert_eq!(
             Some(2),
-            count_files(&PathBuf::from("tests/data/cf/a"), false, true)
+            count_files(&PathBuf::from("tests/data/a"), false, true)
         );
         assert_eq!(
             Some(2),
-            count_files(&PathBuf::from("tests/data/cf/b"), false, true)
+            count_files(&PathBuf::from("tests/data/b"), false, true)
         );
         assert_eq!(
             Some(4),
-            count_files(&PathBuf::from("tests/data/cf/b"), false, false)
+            count_files(&PathBuf::from("tests/data/b"), false, false)
         );
         assert_eq!(
             None,
-            count_files(&PathBuf::from("tests/data/cf/z"), false, false)
+            count_files(&PathBuf::from("tests/data/z"), false, false)
         );
     }
 }
