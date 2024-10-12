@@ -2,9 +2,28 @@
 
 [![Test](https://github.com/snltd/little_tools/actions/workflows/test.yml/badge.svg)](https://github.com/snltd/little_tools/actions/workflows/test.yml)
 
-A bunch of little command-line tools that I find useful. They are Rust
-rewrites, done primarily as a learning exercise, so you trust them at your
-peril.
+A bunch of little command-line tools that I find useful. They are Rust rewrites,
+done primarily as a learning exercise, so you trust them at your peril.
+
+## `alsort`
+
+Sorts files into directories based on the first letter of their name. The
+directories it creates will always be lower case, so `MY_DOS_FILE.TXT` goes into
+`m/`. If you supply the `--group` option, rather than using the single initial
+as the target directory name, it will pick one of `abc`, `def`, etc. Numbers go
+in `0-9`, everything else goes in `symbols`.
+
+## `cf`
+
+Counts files in directories, presenting info like `wc`, so it's easy to sort.
+
+```
+$ cf /etc /bin
+        186     /etc
+        942     /bin
+```
+
+Optionally recurses down trees, and can omit directories from the counts.
 
 ## `cs`
 
@@ -20,23 +39,11 @@ $ ls
 90.hot  this_is_a_file.txt
 ```
 
-## `cf`
-
-Counts files in directories, presenting info like `wc`, so it's easy to sort.
-
-```
-$ cf /etc /bin
-        186     /etc
-        942     /bin
-```
-
-Optionally recurses down trees, and can omit directories from the counts.
-
 ## `mmv`
 
-Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace`
-in the names of the given files. Supports regular expressions and capture
-groups, and has a no-op mode for safe experimentation.
+Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace` in
+the names of the given files. Supports regular expressions and capture groups,
+and has a no-op mode for safe experimentation.
 
 ```
 $ ls
@@ -52,7 +59,7 @@ $ ls
 number_1_named_file.text  number_2_named_file.text  number_3_named_file.text
 ```
 
-Has clobber-protection, multi-replace, and various levels of verbosity.
-`--help` explains.
+Has clobber-protection, multi-replace, and various levels of verbosity. `--help`
+explains.
 
 `--git` prints out `git mv` commands, which you can paste back into your shell.
