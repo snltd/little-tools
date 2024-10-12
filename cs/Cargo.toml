@@ -1,0 +1,9 @@
+[package]
+name = "sc"
+version = "1.1.0"
+edition = "2021"
+
+[dependencies]
+regex = "1"
+clap = { version = "3.1", features = ["derive"] }
+lazy_static = "1.4.0"
