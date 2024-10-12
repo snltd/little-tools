@@ -1,19 +1,18 @@
-name: Test
-
-on:
-  push:
-    branches:
-      '*'
-    tags-ignore:
-      - '\d+.\d+.\d+'
-
+name: Test 
+on: 
+  - push
 jobs:
-  build_and_test:
-    name: Rust project
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+        rust: [stable, nightly]
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - run: cargo test
+    - uses: hecrj/setup-rust-action@v2
+      with:
+        rust-version: ${{ matrix.rust }}
+    - uses: actions/checkout@v4
+    - name: Run tests
+      run: cargo test --verbose
