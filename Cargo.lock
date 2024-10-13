@@ -43,7 +43,7 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "cf"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "clap",
 ]
@@ -85,6 +85,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
+]
+
+[[package]]
+name = "cs"
+version = "1.1.1"
+dependencies = [
+ "clap",
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
@@ -138,7 +147,7 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "mmv"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "clap",
  "regex",
@@ -214,15 +223,6 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
-
-[[package]]
-name = "sc"
-version = "1.1.0"
-dependencies = [
- "clap",
- "lazy_static",
- "regex",
-]
 
 [[package]]
 name = "strsim"
