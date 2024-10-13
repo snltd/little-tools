@@ -104,6 +104,19 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_target_from_initial() {
+        assert_eq!(
+            PathBuf::from("/test/dir/wxyz"),
+            target_from_initial('x', &PathBuf::from("/test/dir"), true).unwrap(),
+        );
+
+        assert_eq!(
+            PathBuf::from("/test/dir/x"),
+            target_from_initial('x', &PathBuf::from("/test/dir"), false).unwrap(),
+        );
+    }
+
+    #[test]
     fn test_group_from_initial() {
         assert_eq!("abc".to_string(), group_from_initial('b'));
         assert_eq!("tuv".to_string(), group_from_initial('t'));
