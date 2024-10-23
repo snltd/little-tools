@@ -39,6 +39,10 @@ $ ls
 90.hot  this_is_a_file.txt
 ```
 
+## `fseq`
+
+Renames files to follow a pattern, with sequence numbers.
+
 ## `mmv`
 
 Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace` in

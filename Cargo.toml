@@ -2,6 +2,7 @@
 members = [ "alsort",
   "cf",
   "cs",
+  "fseq",
   "mmv"
 ]
 resolver = "2"
