@@ -67,3 +67,20 @@ Has clobber-protection, multi-replace, and various levels of verbosity. `--help`
 explains.
 
 `--git` prints out `git mv` commands, which you can paste back into your shell.
+
+## `randos`
+
+Randomly selects a given number of files from a list or directory tree, and
+either symlinks, hard links, copies, or moves them to some other directory.
+
+You can filter the source files by file extension, age, or a regular expression.
+
+The new files can have new names, specified by the `-s` option. 
+* `-s plain`: the target filename is the same as the source filename.
+* `-s hash`: the target filename is a SHA1 hash of the source file's full path.
+* `-s expand`: the target filename is the source file's full path, but with
+`/` replaced by `-`.
+* `-s seq`: the targets are named sequentially, from `00000001` upwards. The
+source file's extension (if any) is preserved.
+
+

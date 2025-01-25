@@ -3,6 +3,7 @@ members = [ "alsort",
   "cf",
   "cs",
   "fseq",
-  "mmv"
+  "mmv",
+  "randos",
 ]
 resolver = "2"
