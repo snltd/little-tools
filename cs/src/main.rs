@@ -1,9 +1,9 @@
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::env;
 use std::ffi::OsString;
-use std::fs;
-use std::path::Path;
-use std::{env, path::PathBuf};
+use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 #[derive(Debug)]
 struct File {
@@ -32,9 +32,8 @@ fn process(args: Vec<OsString>) {
         let path = Path::new(&arg);
 
         if path.exists() {
-            match new_path(path) {
-                Some(p) => rename_file(path, &p),
-                None => (),
+            if let Some(p) = new_path(path) {
+                rename_file(path, &p);
             }
         } else {
             eprintln!("WARN: '{}' not found.", path.display());
@@ -75,7 +74,7 @@ fn new_path(path: &Path) -> Option<PathBuf> {
     Some(new_path)
 }
 
-fn process_file(path: &Path) -> Result<File, std::io::Error> {
+fn process_file(path: &Path) -> io::Result<File> {
     Ok(File {
         dirname: path.canonicalize()?.parent().unwrap().to_owned(),
         basename: path.file_name().unwrap().to_string_lossy().to_string(),
@@ -92,7 +91,7 @@ fn safe_name(old_name: &str) -> String {
     if ret.starts_with('.') {
         ret = ret.replacen('.', "_", 1);
     }
-    
+
     if ret.is_empty() {
         ret = "untranslatable".to_string();
     }

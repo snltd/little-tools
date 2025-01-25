@@ -9,7 +9,6 @@ const THE_TAG: &str = "raw";
 
 #[derive(Parser)]
 #[clap(version, about = "Sequences file names", long_about = None)]
-
 struct Cli {
     /// Identification tag
     #[clap(short = 't', long = "tag", default_value = THE_TAG)]
