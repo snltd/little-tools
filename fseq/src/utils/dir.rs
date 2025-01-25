@@ -70,7 +70,7 @@ impl FilesInDirSubtype {
         }
     }
 
-    pub fn fname_from_stem(&self, file: &PathBuf, num: i32) -> PathBuf {
+    pub fn fname_from_stem(&self, file: &Path, num: i32) -> PathBuf {
         let stem = format!("{}.{}", self.basename, pad_num(num));
 
         let stem = match file.ext_as_string() {
@@ -197,7 +197,7 @@ impl DirExt for Path {
                 continue;
             }
 
-            if let Ok(tokens) = file_tokens::FileTokens::new(&path, &tag) {
+            if let Ok(tokens) = file_tokens::FileTokens::new(&path, tag) {
                 if path.is_tagged(tag) {
                     ret.tagged.insert(path, tokens);
                 } else {
