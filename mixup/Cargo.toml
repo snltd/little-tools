@@ -1,0 +1,8 @@
+[package]
+name = "mixup"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+camino = "1.1.9"
+clap = { version = "4.3", features = ["derive"] }

@@ -5,6 +5,7 @@ members = [
   "cf",
   "cs",
   "fseq",
+  "mixup",
   "mmv",
   "randos",
 ]
