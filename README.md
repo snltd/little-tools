@@ -5,6 +5,10 @@
 A bunch of little command-line tools that I find useful. They are Rust rewrites,
 done primarily as a learning exercise, so you trust them at your peril.
 
+## `align-times`
+
+Recursively makes timestamps of files in `source/` match those in `dest/`.
+
 ## `alsort`
 
 Sorts files into directories based on the first letter of their name. The
