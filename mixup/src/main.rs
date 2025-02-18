@@ -1,6 +1,6 @@
 mod utils;
 
-use crate::utils::{all_words, files, line_words, lines};
+use crate::utils::{all_chars, all_words, files, line_words, lines};
 use camino::Utf8PathBuf;
 use clap::Parser;
 
@@ -56,10 +56,9 @@ fn main() {
         .filter_map(|source_file| std::fs::read_to_string(source_file).ok())
         .collect();
 
-    // const GRANULARITIES: [&str; 5] = ["char", "all-words", "line-words", "line", "file"];
-
     let result = match cli.granularity.as_str() {
-        "all-words" => all_words::mixup_words(raw_sources, cli.interleave),
+        "all-words" | "words" => all_words::mixup_words(raw_sources, cli.interleave),
+        "chars" | "char" => all_chars::mixup_chars(raw_sources, cli.interleave),
         "line-words" => line_words::mixup_lines(raw_sources, cli.interleave),
         "line" | "lines" => lines::mixup_lines(raw_sources, cli.interleave),
         _ => {
