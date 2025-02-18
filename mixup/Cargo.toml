@@ -8,3 +8,9 @@ anyhow = "1.0.95"
 camino = "1.1.9"
 clap = { version = "4.3", features = ["derive"] }
 rand = "0.9.0"
+common = { path = "../common" }
+assert_cmd = "2.0.16"
+
+[dev-dependencies]
+assert_cli = "0.6.3"
+test_utils = { path = "../test_utils" }
