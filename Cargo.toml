@@ -4,6 +4,7 @@ members = [
   "alsort",
   "cf",
   "cs",
+  "common",
   "fseq",
   "mixup",
   "mmv",
