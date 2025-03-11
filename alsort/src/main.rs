@@ -1,13 +1,13 @@
+use anyhow::anyhow;
+use camino::Utf8PathBuf;
 use clap::Parser;
 use std::fs;
-use std::io::{self, Error, ErrorKind};
-use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[clap(version, about = "Sort files into directories based on their first letter", long_about = None)]
 struct Cli {
     #[clap(short = 'R', long = "root", default_value = ".")]
-    root: PathBuf,
+    root: Utf8PathBuf,
     #[clap(short, long)]
     noop: bool,
     #[clap(short, long)]
@@ -15,7 +15,7 @@ struct Cli {
     #[clap(short, long)]
     group: bool,
     #[clap(required = true)]
-    files: Vec<PathBuf>,
+    files: Vec<Utf8PathBuf>,
 }
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
 
     for f in &cli.files {
         if let Err(e) = process(f, &cli) {
-            println!("ERROR: failed to process #{}: #{}", &f.display(), e);
+            println!("ERROR: failed to process #{}: #{}", &f, e);
             errs = true;
         }
     }
@@ -34,36 +34,32 @@ fn main() {
     }
 }
 
-fn process(file: &Path, cli: &Cli) -> Result<(), io::Error> {
-    let f = file.canonicalize()?;
+fn process(file: &Utf8PathBuf, cli: &Cli) -> anyhow::Result<bool> {
+    let f = file.canonicalize_utf8()?;
     let basename = match f.file_name() {
         Some(fname) => fname,
-        None => return Err(Error::new(ErrorKind::Other, "failed to get basename")),
+        None => return Err(anyhow!("failed to get basename")),
     };
 
-    let raw_initial = basename
-        .to_string_lossy()
-        .to_string()
-        .to_lowercase()
-        .chars()
-        .next();
+    let raw_initial = basename.to_lowercase().chars().next();
 
     let initial = match raw_initial {
         Some(letter) => letter,
-        None => return Err(Error::new(ErrorKind::Other, "failed to get initial")),
+        None => return Err(anyhow!("failed to get initial")),
     };
 
-    let target_dir = match target_from_initial(initial, &cli.root, cli.group) {
-        Ok(dir) => dir,
-        Err(_) => return Err(Error::new(ErrorKind::Other, "failed to get target dir")),
-    };
+    let target_dir = target_from_initial(initial, &cli.root, cli.group).canonicalize_utf8()?;
+
+    if target_dir == f {
+        return Ok(false);
+    }
 
     if cli.verbose || cli.noop {
-        println!("{} -> {}", f.display(), target_dir.display());
+        println!("{} -> {}", f, target_dir);
     }
 
     if cli.noop {
-        return Ok(());
+        return Ok(true);
     }
 
     if !target_dir.exists() {
@@ -72,14 +68,15 @@ fn process(file: &Path, cli: &Cli) -> Result<(), io::Error> {
 
     let target_file = target_dir.join(basename);
 
-    fs::rename(&f, &target_file)
+    fs::rename(&f, &target_file)?;
+    Ok(true)
 }
 
-fn target_from_initial(initial: char, root: &Path, group: bool) -> Result<PathBuf, io::Error> {
+fn target_from_initial(initial: char, root: &Utf8PathBuf, group: bool) -> Utf8PathBuf {
     if group {
-        Ok(root.join(group_from_initial(initial)))
+        root.join(group_from_initial(initial))
     } else {
-        Ok(root.join(initial.to_string()))
+        root.join(initial.to_string())
     }
 }
 
@@ -102,17 +99,64 @@ fn group_from_initial(initial: char) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
+    use assert_fs::prelude::*;
 
+    #[test]
+    fn test_process() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        temp.child("a_file.txt").touch().unwrap();
+        temp.child("abc").create_dir_all().unwrap();
+        let file_under_test = Utf8PathBuf::from_path_buf(temp.join("a_file.txt")).unwrap();
+
+        assert!(file_under_test.exists());
+
+        assert!(process(
+            &file_under_test,
+            &Cli {
+                root: Utf8PathBuf::from_path_buf(temp.to_path_buf()).unwrap(),
+                verbose: false,
+                group: true,
+                files: vec![],
+                noop: false,
+            },
+        )
+        .unwrap());
+
+        assert!(!file_under_test.exists());
+        assert!(temp.join("abc").join("a_file.txt").exists());
+    }
+
+    #[test]
+    fn test_process_ignores_target() {
+        let temp = assert_fs::TempDir::new().unwrap();
+        temp.child("a_file.txt").touch().unwrap();
+        temp.child("abc").create_dir_all().unwrap();
+        let file_under_test = Utf8PathBuf::from_path_buf(temp.join("abc")).unwrap();
+
+        assert!(file_under_test.exists());
+
+        assert!(!process(
+            &file_under_test,
+            &Cli {
+                root: Utf8PathBuf::from_path_buf(temp.to_path_buf()).unwrap(),
+                verbose: false,
+                group: true,
+                files: vec![],
+                noop: false,
+            },
+        )
+        .unwrap());
+    }
     #[test]
     fn test_target_from_initial() {
         assert_eq!(
-            PathBuf::from("/test/dir/wxyz"),
-            target_from_initial('x', &PathBuf::from("/test/dir"), true).unwrap(),
+            Utf8PathBuf::from("/test/dir/wxyz"),
+            target_from_initial('x', &Utf8PathBuf::from("/test/dir"), true),
         );
 
         assert_eq!(
-            PathBuf::from("/test/dir/x"),
-            target_from_initial('x', &PathBuf::from("/test/dir"), false).unwrap(),
+            Utf8PathBuf::from("/test/dir/x"),
+            target_from_initial('x', &Utf8PathBuf::from("/test/dir"), false),
         );
     }
 
