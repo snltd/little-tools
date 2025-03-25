@@ -1,36 +1,58 @@
+use camino::{ReadDirUtf8, Utf8Path, Utf8PathBuf};
 use clap::Parser;
-use std::fs::ReadDir;
-use std::path::{Path, PathBuf};
+use std::process;
 
 #[derive(Parser, Debug)]
 #[clap(version, about = "Counts the files in the given directories", long_about = None)]
-struct Args {
-    /// directories
-    #[clap(value_parser)]
-    files: Vec<PathBuf>,
-
-    /// recurse and count all files
+struct Cli {
+    /// Recurse, and count all files
     #[clap(short = 'r', long = "recurse")]
     recurse: bool,
-
     /// Only count files, omitting directories
     #[clap(short, long)]
     nodirs: bool,
+    /// Directories to assess
+    #[arg(required = true)]
+    files: Vec<Utf8PathBuf>,
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
+    let mut exit_code = 0;
 
-    if args.files.is_empty() {
-        eprintln!("No files.");
-        std::process::exit(1);
+    for dir in cli.files.iter() {
+        if dir.is_dir() && dir.exists() {
+            if let Some(c) = count_files(dir, cli.recurse, cli.nodirs) {
+                println!("\t{}\t{}", c, dir);
+            }
+        } else {
+            eprintln!("ERROR: {} is not a directory", dir);
+            exit_code = 1;
+        }
     }
 
-    process(&args);
+    process::exit(exit_code);
 }
 
-fn count_files_recurse(dir: &Path, nodirs: bool, mut count: usize) -> Option<usize> {
-    if let Ok(d) = dir.read_dir() {
+fn count_files(dir: &Utf8Path, recurse: bool, nodirs: bool) -> Option<usize> {
+    if recurse {
+        count_files_recurse(dir, nodirs, 0)
+    } else {
+        match dir.read_dir_utf8() {
+            Ok(d) => {
+                if nodirs {
+                    Some(count_files_only(d))
+                } else {
+                    Some(d.count())
+                }
+            }
+            Err(_) => None,
+        }
+    }
+}
+
+fn count_files_recurse(dir: &Utf8Path, nodirs: bool, mut count: usize) -> Option<usize> {
+    if let Ok(d) = dir.read_dir_utf8() {
         for f in d.flatten() {
             let p = f.path();
 
@@ -39,7 +61,7 @@ fn count_files_recurse(dir: &Path, nodirs: bool, mut count: usize) -> Option<usi
                     count += 1;
                 }
 
-                if let Some(n) = count_files_recurse(&p, nodirs, count) {
+                if let Some(n) = count_files_recurse(p, nodirs, count) {
                     count = n;
                 }
             } else {
@@ -53,35 +75,10 @@ fn count_files_recurse(dir: &Path, nodirs: bool, mut count: usize) -> Option<usi
     Some(count)
 }
 
-fn count_files_only(dir: ReadDir) -> usize {
+fn count_files_only(dir: ReadDirUtf8) -> usize {
     dir.filter_map(|f| f.ok())
         .filter(|f| f.path().is_file())
         .count()
-}
-
-fn count_files(dir: &Path, recurse: bool, nodirs: bool) -> Option<usize> {
-    if recurse {
-        count_files_recurse(dir, nodirs, 0)
-    } else {
-        match dir.read_dir() {
-            Ok(d) => {
-                if nodirs {
-                    Some(count_files_only(d))
-                } else {
-                    Some(d.count())
-                }
-            }
-            Err(_) => None,
-        }
-    }
-}
-
-fn process(args: &Args) {
-    for dir in args.files.iter().filter(|f| f.is_dir()) {
-        if let Some(c) = count_files(dir, args.recurse, args.nodirs) {
-            println!("\t{}\t{}", c, dir.display());
-        }
-    }
 }
 
 #[cfg(test)]
@@ -91,36 +88,36 @@ mod test {
     #[test]
     fn test_count_files_recurse() {
         assert_eq!(
-            Some(2),
-            count_files(&PathBuf::from("tests/data/a"), true, true)
+            2,
+            count_files(&Utf8PathBuf::from("tests/resources/a"), true, true).unwrap()
         );
         assert_eq!(
-            Some(6),
-            count_files(&PathBuf::from("tests/data/b"), true, true)
+            6,
+            count_files(&Utf8PathBuf::from("tests/resources/b"), true, true).unwrap()
         );
         assert_eq!(
-            Some(8),
-            count_files(&PathBuf::from("tests/data/b"), true, false)
+            8,
+            count_files(&Utf8PathBuf::from("tests/resources/b"), true, false).unwrap()
         );
     }
 
     #[test]
     fn test_count_files() {
         assert_eq!(
-            Some(2),
-            count_files(&PathBuf::from("tests/data/a"), false, true)
+            2,
+            count_files(&Utf8PathBuf::from("tests/resources/a"), false, true).unwrap()
         );
         assert_eq!(
-            Some(2),
-            count_files(&PathBuf::from("tests/data/b"), false, true)
+            2,
+            count_files(&Utf8PathBuf::from("tests/resources/b"), false, true).unwrap()
         );
         assert_eq!(
-            Some(4),
-            count_files(&PathBuf::from("tests/data/b"), false, false)
+            4,
+            count_files(&Utf8PathBuf::from("tests/resources/b"), false, false).unwrap()
         );
         assert_eq!(
             None,
-            count_files(&PathBuf::from("tests/data/z"), false, false)
+            count_files(&Utf8PathBuf::from("tests/resources/z"), false, false)
         );
     }
 }
