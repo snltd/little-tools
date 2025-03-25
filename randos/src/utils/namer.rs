@@ -1,5 +1,6 @@
 use camino::Utf8PathBuf;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::distr::Alphanumeric;
+use rand::Rng;
 
 pub fn name_from(path: &Utf8PathBuf, seq_no: usize, scheme: &Option<String>) -> Option<String> {
     if let Some(basename) = path.file_name() {
@@ -34,7 +35,7 @@ fn hash(path: &Utf8PathBuf) -> String {
 fn random(path: &Utf8PathBuf) -> String {
     let extension = path.extension().unwrap_or("");
 
-    let stem: String = rand::thread_rng()
+    let stem: String = rand::rng()
         .sample_iter(&Alphanumeric)
         .take(32)
         .map(char::from)
