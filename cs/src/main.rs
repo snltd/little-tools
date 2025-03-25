@@ -1,137 +1,187 @@
-use lazy_static::lazy_static;
-use regex::Regex;
-use std::env;
-use std::ffi::OsString;
-use std::path::{Path, PathBuf};
-use std::{fs, io};
+use anyhow::{anyhow, Context};
+use camino::{Utf8Path, Utf8PathBuf};
+use clap::Parser;
+use std::{fs, process};
+use unidecode::unidecode_char;
 
-#[derive(Debug)]
-struct File {
-    dirname: PathBuf,
-    basename: String,
+#[derive(Parser, Debug)]
+#[clap(version, about = "Filename flattener")]
+struct Cli {
+    /// Be verbose
+    #[clap(short, long)]
+    verbose: bool,
+    /// Say what would happen without doing it
+    #[clap(short, long)]
+    noop: bool,
+    /// Overwrite existing files rather than adding a number
+    #[clap(short, long)]
+    clobber: bool,
+    /// In the event of a filename collision, error rather than putting a number in the output filename
+    #[clap(short = 'N', long)]
+    nonumber: bool,
+    /// Files to rename
+    #[arg(required = true)]
+    files: Vec<Utf8PathBuf>,
 }
 
-lazy_static! {
-    static ref WSRX: Regex = Regex::new(r"\s+").unwrap();
-    static ref JUNKRX: Regex = Regex::new(r"[^a-z0-9\._\-]+").unwrap();
-    static ref NUMRX: Regex =
-        Regex::new(r"^(?P<prefix>.*)\.(?P<num>\d+)(?P<suffix>\.\w+)?$").unwrap();
+struct Opts {
+    noop: bool,
+    clobber: bool,
+    nonumber: bool,
+    verbose: bool,
 }
 
 fn main() {
-    if env::args().len() == 1 {
-        eprintln!("Usage: cs <file>...");
-        std::process::exit(1);
-    }
+    let cli = Cli::parse();
 
-    process(std::env::args_os().skip(1).collect::<Vec<OsString>>());
-}
+    let mut exit_code = 0;
 
-fn process(args: Vec<OsString>) {
-    for arg in args {
-        let path = Path::new(&arg);
-
-        if path.exists() {
-            if let Some(p) = new_path(path) {
-                rename_file(path, &p);
-            }
-        } else {
-            eprintln!("WARN: '{}' not found.", path.display());
-        }
-    }
-}
-
-fn rename_file(old: &Path, new: &Path) {
-    println!("{} -> {}", old.display(), new.display());
-    match fs::rename(old, new) {
-        Ok(_) => (),
-        _ => eprintln!("ERROR: could not rename"),
-    }
-}
-
-fn new_path(path: &Path) -> Option<PathBuf> {
-    let file = match process_file(path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("ERROR processing {}: {}", path.display(), e);
-            return None;
-        }
+    let opts = Opts {
+        noop: cli.noop,
+        clobber: cli.clobber,
+        nonumber: cli.nonumber,
+        verbose: cli.verbose,
     };
 
-    let source = &file.basename;
-    let target = safe_name(source);
-
-    if source == &target {
-        return None;
+    for file in cli.files {
+        if let Err(e) = process_file(&file, &opts) {
+            eprintln!("ERROR on {}: {}", file, e);
+            exit_code = 1;
+        }
     }
 
-    let mut new_path = file.dirname.join(&target);
+    process::exit(exit_code)
+}
 
-    while new_path.exists() {
-        new_path = numbered_path(&new_path);
+fn process_file(path: &Utf8Path, opts: &Opts) -> anyhow::Result<bool> {
+    if !path.exists() {
+        return Err(anyhow!("file not found"));
     }
 
-    Some(new_path)
+    let path = path.canonicalize_utf8()?;
+    match new_path(&path, opts)? {
+        Some(new_path) => rename_file(&path, &new_path, opts),
+        None => Ok(false),
+    }
 }
 
-fn process_file(path: &Path) -> io::Result<File> {
-    Ok(File {
-        dirname: path.canonicalize()?.parent().unwrap().to_owned(),
-        basename: path.file_name().unwrap().to_string_lossy().to_string(),
-    })
+fn new_path(path: &Utf8Path, opts: &Opts) -> anyhow::Result<Option<Utf8PathBuf>> {
+    let path = path.canonicalize_utf8()?;
+    let basename = path.file_name().context("could not derive basename")?;
+    let dir = path.parent().context("could not derive dirname")?;
+    let mut new_name = ascii_filename(basename);
+
+    if basename == new_name {
+        if opts.verbose {
+            println!("{} has acceptable name", path);
+        }
+        return Ok(None);
+    }
+
+    let mut new_path = dir.join(&new_name);
+
+    if new_path.exists() {
+        if opts.clobber {
+            if opts.verbose {
+                println!("{} will be overwritten", path);
+            }
+            return Ok(Some(new_path));
+        } else if opts.nonumber {
+            return Err(anyhow!("file exists: {}", new_path));
+        }
+    }
+
+    loop {
+        if new_path.exists() {
+            let numbered_name = numbered_filename(&new_name)?;
+            new_name = numbered_name;
+            new_path = dir.join(&new_name);
+        } else {
+            break;
+        }
+    }
+
+    Ok(Some(new_path))
 }
 
-fn safe_name(old_name: &str) -> String {
-    let mut ret = WSRX
-        .replace_all(old_name.trim(), "_")
-        .replace("_-_", "-")
-        .to_lowercase();
-    ret = JUNKRX.replace_all(&ret, "").to_string();
+fn rename_file(old: &Utf8Path, new: &Utf8Path, opts: &Opts) -> anyhow::Result<bool> {
+    if opts.verbose || opts.noop {
+        println!("{} -> {}", old, new);
+    }
 
-    if ret.starts_with('.') {
-        ret = ret.replacen('.', "_", 1);
+    if opts.noop {
+        Ok(false)
+    } else {
+        fs::rename(old, new)?;
+        Ok(true)
+    }
+}
+
+fn ascii_filename(file_name: &str) -> String {
+    let mut ret: Vec<char> = Vec::new();
+    let mut last_char = '!';
+
+    for c in file_name.chars() {
+        if c.is_ascii_alphabetic() {
+            ret.push(c.to_ascii_lowercase());
+            last_char = c;
+        } else if c.is_alphabetic() {
+            let uc = ascii_filename(unidecode_char(c));
+            ret.extend(uc.chars());
+        } else if c.is_numeric() || ['.', '_'].contains(&c) {
+            ret.push(c);
+            last_char = '_';
+        } else if c == '-' {
+            if last_char == '_' {
+                let len = ret.len();
+                ret[len - 1] = c;
+                last_char = '_';
+            }
+        } else if c.is_whitespace() && !ret.is_empty() && last_char != '_' {
+            ret.push('_');
+            last_char = '_';
+        }
     }
 
     if ret.is_empty() {
-        ret = "untranslatable".to_string();
+        return "UNTRANSLATABLE".into();
     }
 
-    ret
+    if ret[0] == '.' {
+        ret[0] = '_';
+    }
+
+    ret.into_iter().collect()
 }
 
-fn numbered_path(path: &Path) -> PathBuf {
-    match process_file(path) {
-        Ok(f) => f.dirname.join(uniquely_number(&f.basename)),
-        _ => panic!(), // how can this happen?
+fn numbered_filename(file_name: &str) -> anyhow::Result<String> {
+    let mut chunks: Vec<_> = file_name.split('.').collect();
+    let mut ret_chunks = Vec::new();
+
+    if chunks.len() == 1 {
+        return Ok(format!("{}.001", file_name));
     }
-}
 
-fn uniquely_number(old_name: &str) -> String {
-    match NUMRX.captures(old_name) {
-        Some(b) => {
-            let num: i32 = match b.name("num").unwrap().as_str().parse::<i32>() {
-                Ok(n) => n + 1,
-                _ => 1,
-            };
+    let extension = chunks.pop().context("failed to get extension")?;
+    let maybe_num = chunks.pop().context("failed to get filename stem")?;
+    let new_num;
 
-            let suffix = match b.name("suffix") {
-                Some(n) => n.as_str(),
-                None => "",
-            };
+    ret_chunks.push(extension);
 
-            let prefix = b.name("prefix").unwrap().as_str();
-
-            format!("{}.{:0>3?}{}", prefix, num, suffix)
-        }
-        None => insert_number(old_name),
+    if let Ok(num) = maybe_num.parse::<u16>() {
+        new_num = format!("{:0>3}", num + 1);
+        ret_chunks.push(new_num.as_str());
+    } else {
+        ret_chunks.push("001");
+        ret_chunks.push(maybe_num);
     }
-}
 
-fn insert_number(old_name: &str) -> String {
-    match old_name.rsplit_once('.') {
-        Some(b) => format!("{}.001.{}", b.0, b.1),
-        None => format!("{}.001", old_name),
+    while let Some(chunk) = chunks.pop() {
+        ret_chunks.push(chunk);
     }
+
+    ret_chunks.reverse();
+    Ok(ret_chunks.join("."))
 }
 
 #[cfg(test)]
@@ -139,32 +189,33 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_uniquely_number() {
-        assert_eq!("file.001.sfx", uniquely_number("file.sfx"));
-        assert_eq!("file.002.sfx", uniquely_number("file.001.sfx"));
+    fn test_numbered_filename() {
+        assert_eq!("file.001", numbered_filename("file").unwrap());
+        assert_eq!("file.001.sfx", numbered_filename("file.sfx").unwrap());
+        assert_eq!("file.002.sfx", numbered_filename("file.001.sfx").unwrap());
         assert_eq!(
             "many.dots.file.022.sfx",
-            uniquely_number("many.dots.file.021.sfx")
+            numbered_filename("many.dots.file.021.sfx").unwrap()
         );
-        assert_eq!("file.001", uniquely_number("file"));
-        assert_eq!("file.008", uniquely_number("file.007"));
-        assert_eq!("unsuffixed_file.001", uniquely_number("unsuffixed_file"));
+        assert_eq!("file.001.007", numbered_filename("file.007").unwrap());
     }
 
     #[test]
     fn test_safe_name() {
-        assert_eq!("fine".to_string(), safe_name("fine"));
-        assert_eq!("downcase".to_string(), safe_name("DoWnCaSe"));
+        assert_eq!("fine".to_string(), ascii_filename("fine"));
+        assert_eq!("downcase".to_string(), ascii_filename("DoWnCaSe"));
         assert_eq!(
-            "w_h_i_t_e_s_p_a_c_e".to_string(),
-            safe_name(" w h i t e   s p a c e ")
+            "w_h_i_t_e_s_p_a_c_e_".to_string(),
+            ascii_filename(" w h i t e   s p a c e ")
         );
-        assert_eq!("squashed-dashes", safe_name("Squashed - Dashes"));
+        assert_eq!("squashed-dashes", ascii_filename("Squashed - Dashes"));
         assert_eq!(
             "no_nonsense.file",
-            safe_name("$$No!!! NonSense:^\"£§™.FILE")
+            ascii_filename("$$No!!! NonSense:^\"£§™.FILE")
         );
-        assert_eq!("_dotfile.sfx", safe_name(".dotfile.sfx"));
-        assert_eq!("untranslatable", safe_name("文字化け"));
+        assert_eq!("aeneid", ascii_filename("Æneid"));
+        assert_eq!("_dotfile.sfx", ascii_filename(".dotfile.sfx"));
+        assert_eq!("wen_zi_hua_ke", ascii_filename("文字化け"));
+        assert_eq!("UNTRANSLATABLE", ascii_filename("$(($$$$))[[$$$$]]$"));
     }
 }
