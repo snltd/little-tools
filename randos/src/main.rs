@@ -3,7 +3,7 @@ use crate::utils::types::{ActionOpts, FilterOpts};
 use crate::utils::{actions, dir, filter, namer};
 use camino::Utf8PathBuf;
 use clap::Parser;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{rng, seq::SliceRandom};
 use regex::Regex;
 use time::{Duration, OffsetDateTime};
 
@@ -117,7 +117,7 @@ fn main() {
 
     let mut sources: Vec<(&Utf8PathBuf, Utf8PathBuf)> = Vec::new();
     let mut index_list: Vec<usize> = (0..candidates).collect();
-    let mut rng = thread_rng();
+    let mut rng = rng();
     index_list.shuffle(&mut rng);
     let mut seq_no = 0;
 
