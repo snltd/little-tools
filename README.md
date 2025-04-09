@@ -2,8 +2,8 @@
 
 [![Test](https://github.com/snltd/little_tools/actions/workflows/test.yml/badge.svg)](https://github.com/snltd/little_tools/actions/workflows/test.yml)
 
-A bunch of little command-line tools that I find useful. They are Rust rewrites,
-done primarily as a learning exercise, so you trust them at your peril.
+A bunch of little command-line tools that I find useful. Most of them are
+rewrites of shell or Ruby scripts I've had kicking around for years.
 
 ## `align-times`
 
@@ -47,6 +47,12 @@ $ ls
 
 Renames files to follow a pattern, with sequence numbers.
 
+## `mixup`
+
+Mixes up bodies of text with granularity `char`, `word`, `line`, or `file`. If
+you give multiple files, the `-i` option will mix the files together first, then
+mix the result up with the specified granularity.
+
 ## `mmv`
 
 Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace` in
@@ -79,12 +85,11 @@ either symlinks, hard links, copies, or moves them to some other directory.
 
 You can filter the source files by file extension, age, or a regular expression.
 
-The new files can have new names, specified by the `-s` option. 
-* `-s plain`: the target filename is the same as the source filename.
-* `-s hash`: the target filename is a SHA1 hash of the source file's full path.
-* `-s expand`: the target filename is the source file's full path, but with
-`/` replaced by `-`.
-* `-s seq`: the targets are named sequentially, from `00000001` upwards. The
-source file's extension (if any) is preserved.
+The new files can have new names, specified by the `-s` option.
 
-
+- `-s plain`: the target filename is the same as the source filename.
+- `-s hash`: the target filename is a SHA1 hash of the source file's full path.
+- `-s expand`: the target filename is the source file's full path, but with `/`
+  replaced by `-`.
+- `-s seq`: the targets are named sequentially, from `00000001` upwards. The
+  source file's extension (if any) is preserved.
