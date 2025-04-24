@@ -2,6 +2,7 @@ use crate::utils::file::PathExt;
 use crate::utils::types::{FileTokens, RenameActions, RenameActionsResult};
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
+use regex::Regex;
 use std::collections::HashMap;
 
 pub type FileTokenMapSubtype = HashMap<Utf8PathBuf, FileTokens>;
@@ -26,6 +27,7 @@ pub struct FilesInDirSubtype {
     pub numbers: Vec<i32>,
 }
 
+#[derive(Debug)]
 pub struct FilesInDir {
     pub tagged: FilesInDirSubtype,
     pub untagged: FilesInDirSubtype,
@@ -140,6 +142,13 @@ impl DirExt for Utf8Path {
         let dir_basename = basename(self)?;
         let mut ret = FilesInDir::new(self.to_path_buf(), dir_basename.as_str(), &tag);
 
+        let pattern = format!(
+            r"^{}(\.{})?\.\d+\.\w+$",
+            regex::escape(&dir_basename),
+            regex::escape(&tag)
+        );
+        let rx = Regex::new(&pattern).unwrap();
+
         for file in self.read_dir_utf8()? {
             let file = file?;
             let path = file.path();
@@ -150,7 +159,7 @@ impl DirExt for Utf8Path {
 
             let file_basename = basename(path)?;
 
-            if file_basename.starts_with(dir_basename.as_str()) {
+            if rx.is_match(&file_basename) {
                 if path.is_tagged(&tag) {
                     ret.tagged.numbered_files.push(path.to_path_buf());
                     if let Some(num) = path.get_number() {
@@ -405,6 +414,8 @@ mod test {
             .categorise_files("xx".to_string())
             .unwrap();
 
+        println!("{:#?}", result);
+
         assert_eq!("some.dir", result.untagged.basename);
         assert_eq!("some.dir.xx", result.tagged.basename);
 
@@ -417,10 +428,6 @@ mod test {
                 fixture("some.dir/some.dir.0002.jpg"),
                 fixture("some.dir/some.dir.0003.jpg"),
                 fixture("some.dir/some.dir.0005.jpg"),
-                fixture("some.dir/some.dir.tag.0002.jpg"),
-                fixture("some.dir/some.dir.tag.0003.jpg"),
-                fixture("some.dir/some.dir.tag.0004.jpg"),
-                fixture("some.dir/some.dir.tag.1234.jpg"),
             ],
             result.untagged.numbered_files,
         );

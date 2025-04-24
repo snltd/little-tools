@@ -48,23 +48,23 @@ mod test {
     fn test_fseq_consolidate_different_names() {
         let original_names = vec![
             "file.txt",
-            "fseq.test.0003.txt",
+            "fseq_test.test.0003.txt",
             "merp-merp.txt",
             "line.006.txt",
             "merp.TAG.0009.txt",
-            "fseq.test.TAG.1009.txt",
+            "fseq_test.TAG.1009.txt",
         ];
 
         let expected_names = vec![
-            "fseq.test.0001.txt",
-            "fseq.test.0002.txt",
-            "fseq.test.0003.txt",
-            "fseq.test.0004.txt",
-            "fseq.test.TAG.0001.txt",
-            "fseq.test.TAG.0002.txt",
+            "fseq_test.0001.txt",
+            "fseq_test.0002.txt",
+            "fseq_test.0003.txt",
+            "fseq_test.0004.txt",
+            "fseq_test.TAG.0001.txt",
+            "fseq_test.TAG.0002.txt",
         ];
 
-        let (_tmp, test_dir) = fixture_dir("fseq.test", original_names);
+        let (_tmp, test_dir) = fixture_dir("fseq_test", original_names);
 
         Command::cargo_bin("fseq")
             .unwrap()
