@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
-    use test_utils::spec_helper::fixture_as_string;
+    use test_utils::fixture_as_string;
 
     #[test]
     fn test_single_file_is_like_cat() {
