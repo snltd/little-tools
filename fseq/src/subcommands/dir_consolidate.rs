@@ -57,7 +57,7 @@ fn consolidate_actions_for_base(files: dir::FilesInDirSubtype) -> RenameActions 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
+    use test_utils::fixture;
 
     #[test]
     fn test_consolidate_actions() {

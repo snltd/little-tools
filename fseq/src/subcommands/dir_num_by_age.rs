@@ -1,6 +1,6 @@
 use crate::utils::common;
 use crate::utils::dir::DirExt;
-use crate::utils::file_tokens;
+use crate::utils::file_tokens::FileTokens;
 use crate::utils::types::{Opts, RenameActions, RenameActionsResult};
 use std::collections::HashMap;
 use std::io;
@@ -15,8 +15,8 @@ pub fn run(dirlist: &Vec<String>, opts: &Opts) -> anyhow::Result<()> {
     crate::run!(dirlist, opts)
 }
 
-fn movers_for_type(files: HashMap<PathBuf, file_tokens::FileTokens>) -> RenameActionsResult {
-    let mut mtime_vec: Vec<(PathBuf, file_tokens::FileTokens)> = files.into_iter().collect();
+fn movers_for_type(files: HashMap<PathBuf, FileTokens>) -> RenameActionsResult {
+    let mut mtime_vec: Vec<(PathBuf, FileTokens)> = files.into_iter().collect();
     mtime_vec.sort_by(|a, b| a.1.mtime.cmp(&b.1.mtime));
     make_move_list(find_movers(&mtime_vec))
 }
@@ -34,7 +34,7 @@ fn actions(dir: &Path, tag: &str) -> RenameActionsResult {
 
 // This makes a naive move list. We need to work out what order to do the moves
 // in.
-fn find_movers(move_vec: &[(PathBuf, file_tokens::FileTokens)]) -> RenameActions {
+fn find_movers(move_vec: &[(PathBuf, FileTokens)]) -> RenameActions {
     let mut ret: RenameActions = Vec::new();
     let mut expected_number = 1;
 
@@ -104,8 +104,8 @@ fn make_move_list(mut input: RenameActions) -> RenameActionsResult {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::{file_token_with_time, fixture};
     use std::time::{Duration, SystemTime};
+    use test_utils::fixture;
 
     #[test]
     fn test_find_next_link() {
@@ -238,7 +238,7 @@ mod test {
     #[test]
     fn test_find_movers() {
         let now = SystemTime::now();
-        assert!(find_movers(&vec![
+        assert!(find_movers(&[
             (file_token_with_time(
                 &fixture("age.dir/age.dir.0001.jpg"),
                 now - Duration::new(3, 0)
@@ -265,7 +265,7 @@ mod test {
                     fixture("age.dir/age.dir.0003.jpg"),
                 ),
             ],
-            find_movers(&vec![
+            find_movers(&[
                 (file_token_with_time(
                     &fixture("age.dir/age.dir.0003.jpg"),
                     now - Duration::new(3, 0)
@@ -280,5 +280,11 @@ mod test {
                 )),
             ]),
         );
+    }
+
+    fn file_token_with_time(file: &Path, ts: SystemTime) -> (PathBuf, FileTokens) {
+        let mut tokens = FileTokens::new(file, "tag").unwrap();
+        tokens.mtime = ts;
+        (file.to_owned(), tokens)
     }
 }

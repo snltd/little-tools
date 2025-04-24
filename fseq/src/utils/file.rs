@@ -65,7 +65,7 @@ impl PathExt for Path {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
+    use test_utils::fixture;
 
     #[test]
     fn test_ext_as_string() {
