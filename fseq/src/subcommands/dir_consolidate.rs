@@ -1,18 +1,19 @@
+use crate::utils::common;
+use crate::utils::dir::{DirExt, FilesInDirSubtype};
 use crate::utils::file::PathExt;
 use crate::utils::types::{Opts, RenameActions, RenameActionsResult};
-use crate::utils::{common, dir, dir::DirExt};
-use std::path::Path;
+use camino::{Utf8Path, Utf8PathBuf};
 
 // Consolidates a directory. If the filename numbers are non-contiguous, pull
 // down the highest numbers, renaming files until all holes are filled. Tagging
 // is preserved, and filenames not matching the base pattern ("rogues") are
 // renamed to fit the pattern. File extension is preserved.
 //
-pub fn run(dirlist: &Vec<String>, opts: &Opts) -> anyhow::Result<()> {
+pub fn run(dirlist: &Vec<Utf8PathBuf>, opts: &Opts) -> anyhow::Result<()> {
     crate::run!(dirlist, opts)
 }
 
-fn actions(dir: &Path, tag: &str) -> RenameActionsResult {
+fn actions(dir: &Utf8Path, tag: &str) -> RenameActionsResult {
     let files = dir.categorise_files(tag.to_owned())?;
 
     let mut actions = consolidate_actions_for_base(files.untagged);
@@ -22,7 +23,7 @@ fn actions(dir: &Path, tag: &str) -> RenameActionsResult {
     Ok(actions)
 }
 
-fn consolidate_actions_for_base(files: dir::FilesInDirSubtype) -> RenameActions {
+fn consolidate_actions_for_base(files: FilesInDirSubtype) -> RenameActions {
     let mut ret: RenameActions =
         Vec::with_capacity(files.numbered_files.len() + files.rogue_files.len());
     let numbered_len = files.numbered_files.len();

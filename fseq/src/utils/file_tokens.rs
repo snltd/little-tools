@@ -1,30 +1,14 @@
 use crate::utils::dir;
+use crate::utils::types::FileTokens;
 use anyhow::{anyhow, Context};
+use camino::{Utf8Path, Utf8PathBuf};
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
-
-#[derive(Debug)]
-pub struct FileTokens {
-    pub dir: PathBuf,
-    pub stem: String,
-    pub num: Option<i32>,
-    pub suffix: String,
-    pub tag: String,
-    pub is_tagged: bool,
-    pub mtime: SystemTime,
-}
 
 impl FileTokens {
-    pub fn new(file: &Path, tag: &str) -> anyhow::Result<FileTokens> {
-        let file = file.canonicalize()?;
+    pub fn new(file: &Utf8Path, tag: &str) -> anyhow::Result<FileTokens> {
+        let file = file.canonicalize_utf8()?;
 
-        let basename = file
-            .file_name()
-            .context("cannot get basename")?
-            .to_string_lossy()
-            .into_owned();
-
+        let basename = file.file_name().context("cannot get basename")?.to_string();
         let dirname = file.parent().context("cannot get dirname")?.to_path_buf();
 
         let tokens: Vec<&str> = basename.split('.').collect();
@@ -56,7 +40,7 @@ impl FileTokens {
         })
     }
 
-    pub fn make_filename_with_num(&self, num: i32) -> PathBuf {
+    pub fn make_filename_with_num(&self, num: i32) -> Utf8PathBuf {
         let mut bits = vec![self.stem.clone()];
         if self.is_tagged {
             bits.push(self.tag.clone());
@@ -70,6 +54,7 @@ impl FileTokens {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::time::SystemTime;
     use test_utils::fixture;
 
     // Custom PartialEq for the tests. We don't want to compare mtime, because on

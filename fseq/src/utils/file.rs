@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use std::path::Path;
+use camino::{Utf8Path, Utf8PathBuf};
 
 pub trait PathExt {
     fn is_tagged(&self, tag: &str) -> bool;
@@ -8,11 +8,27 @@ pub trait PathExt {
     fn ext_as_string(&self) -> Option<String>;
 }
 
-impl PathExt for Path {
+impl PathExt for Utf8Path {
+    fn is_tagged(&self, tag: &str) -> bool {
+        self.to_owned().is_tagged(tag)
+    }
+
+    fn fname_tokens(&self) -> anyhow::Result<Vec<String>> {
+        self.to_owned().fname_tokens()
+    }
+
+    fn get_number(&self) -> Option<i32> {
+        self.to_owned().get_number()
+    }
+
     fn ext_as_string(&self) -> Option<String> {
-        self.extension()
-            .and_then(|ext| ext.to_str())
-            .map(|s| s.to_string())
+        self.to_owned().ext_as_string()
+    }
+}
+
+impl PathExt for Utf8PathBuf {
+    fn ext_as_string(&self) -> Option<String> {
+        self.extension().map(|e| e.to_owned())
     }
 
     // How do we decide if something is tagged? In descending order of
@@ -43,11 +59,11 @@ impl PathExt for Path {
 
     fn fname_tokens(&self) -> anyhow::Result<Vec<String>> {
         let basename = match self.file_name() {
-            Some(name) => name.to_string_lossy().to_string(),
+            Some(name) => name.to_owned(),
             None => return Err(anyhow!("Invalid file name")),
         };
 
-        let tokens: Vec<String> = basename.split(".").map(|s| s.to_string()).collect();
+        let tokens: Vec<String> = basename.split(".").map(|s| s.to_owned()).collect();
 
         if tokens.len() < 3 {
             return Err(anyhow!("Filename does not contain enough information"));
@@ -71,7 +87,7 @@ mod test {
     fn test_ext_as_string() {
         assert_eq!(
             Some("txt".to_string()),
-            Path::new("/path/file.txt").ext_as_string()
+            Utf8PathBuf::from("/path/file.txt").ext_as_string()
         );
     }
 

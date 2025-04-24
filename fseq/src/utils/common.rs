@@ -9,17 +9,17 @@ pub fn take_actions(action_list: RenameActionsResult, opts: &Opts) -> anyhow::Re
     match action_list {
         Ok(actions) => {
             for (src, dest) in actions.iter() {
-                verbose!(opts, "{} -> {}", src.display(), dest.display());
+                verbose!(opts, "{} -> {}", src, dest);
 
                 if !opts.noop {
                     if dest.exists() {
-                        println!("ERROR: {} exists", dest.display());
+                        eprintln!("ERROR: {} exists", dest);
                         errs += 1;
                     } else {
                         match fs::rename(src, dest) {
                             Ok(_) => (),
                             Err(e) => {
-                                println!("ERROR: {}", e);
+                                eprintln!("ERROR: {}", e);
                                 errs += 1;
                             }
                         }
