@@ -25,7 +25,7 @@ pub fn fixture_dir(dir_name: &str, files: Vec<&str>) -> (TempDir, PathBuf) {
 
     for file in files {
         let file_path = dir.child(file);
-        file_path.write_str("").expect("failed to create file");
+        file_path.write_str(file).expect("failed to create file");
     }
 
     let canon_dir = std::fs::canonicalize(dir.path()).expect("canonicalize failed");
