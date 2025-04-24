@@ -70,7 +70,7 @@ impl FileTokens {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
+    use test_utils::fixture;
 
     // Custom PartialEq for the tests. We don't want to compare mtime, because on
     // a git checkout the real one could be anything.
