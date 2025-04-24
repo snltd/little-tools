@@ -8,4 +8,5 @@ path = "src/lib.rs"
 
 [dependencies]
 assert_fs = "1"  
+camino = "1.1.9"
 predicates = "2"

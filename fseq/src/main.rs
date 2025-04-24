@@ -1,4 +1,5 @@
 use crate::utils::types::Opts;
+use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand};
 
 mod subcommands;
@@ -44,12 +45,12 @@ enum DirCommands {
     /// Renames all files sequentially to <dir_name>.[tag.]<number>.suffix
     Consolidate {
         #[arg(required = true)]
-        dirs: Vec<String>,
+        dirs: Vec<Utf8PathBuf>,
     },
     /// Renumbers files which match the naming scheme in order of modification time  
     NumByAge {
         #[arg(required = true)]
-        dirs: Vec<String>,
+        dirs: Vec<Utf8PathBuf>,
     },
 }
 
@@ -66,19 +67,19 @@ enum FileCommands {
     #[command(alias = "flip-tag")]
     Flip {
         #[arg(required = true)]
-        files: Vec<String>,
+        files: Vec<Utf8PathBuf>,
     },
     /// Sets the filename tag if it is not set already
     #[command(alias = "set-tag")]
     Set {
         #[arg(required = true)]
-        files: Vec<String>,
+        files: Vec<Utf8PathBuf>,
     },
     /// Removes any filename tag
     #[command(alias = "unset-tag")]
     Unset {
         #[arg(required = true)]
-        files: Vec<String>,
+        files: Vec<Utf8PathBuf>,
     },
 }
 
@@ -106,9 +107,9 @@ fn main() {
         },
         Commands::File(file) => match file.command {
             Some(file_cmd) => match file_cmd {
-                FileCommands::Flip { files } => subcommands::file_flip::run(&files, opts),
-                FileCommands::Set { files } => subcommands::file_set::run(&files, opts),
-                FileCommands::Unset { files } => subcommands::file_unset::run(&files, opts),
+                FileCommands::Flip { files } => subcommands::file_flip::run(&files, &opts),
+                FileCommands::Set { files } => subcommands::file_set::run(&files, &opts),
+                FileCommands::Unset { files } => subcommands::file_unset::run(&files, &opts),
             },
             None => {
                 eprintln!("ERROR: the 'file' command needs a subcommand.");
