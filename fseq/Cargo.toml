@@ -8,6 +8,7 @@ anyhow = "1.0.98"
 camino = "1.1.9"
 clap = { version = "4.3", features = ["derive"] }
 common = { path = "../common" }
+regex = "1.11.1"
 
 [dev-dependencies]
 assert_cmd = "2.0.17"

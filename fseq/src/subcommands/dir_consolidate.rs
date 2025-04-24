@@ -28,7 +28,6 @@ fn consolidate_actions_for_base(files: FilesInDirSubtype) -> RenameActions {
         Vec::with_capacity(files.numbered_files.len() + files.rogue_files.len());
     let numbered_len = files.numbered_files.len();
     let hole_list = files.hole_list();
-
     let min_len = std::cmp::min(numbered_len, hole_list.len());
 
     for (i, hole) in hole_list.iter().enumerate().take(min_len) {
