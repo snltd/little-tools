@@ -76,14 +76,17 @@ mod test {
         f2.touch().unwrap();
         f3.touch().unwrap();
 
+        let f1 = f1.canonicalize().unwrap();
+        let f2 = f2.canonicalize().unwrap();
+        let f3 = f3.canonicalize().unwrap();
+        let tmp = tmp.canonicalize().unwrap();
+
         Command::cargo_bin("cs")
             .unwrap()
-            .args([
-                "--verbose",
-                f1.to_string_lossy().as_ref(),
-                f2.to_string_lossy().as_ref(),
-                f3.to_string_lossy().as_ref(),
-            ])
+            .arg("--verbose")
+            .arg(&f1)
+            .arg(&f2)
+            .arg(&f3)
             .assert()
             .success()
             .stdout(predicate::str::contains(format!(

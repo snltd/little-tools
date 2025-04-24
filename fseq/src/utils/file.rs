@@ -1,17 +1,34 @@
-use std::path::Path;
+use anyhow::anyhow;
+use camino::{Utf8Path, Utf8PathBuf};
 
 pub trait PathExt {
     fn is_tagged(&self, tag: &str) -> bool;
-    fn fname_tokens(&self) -> Result<Vec<String>, String>;
+    fn fname_tokens(&self) -> anyhow::Result<Vec<String>>;
     fn get_number(&self) -> Option<i32>;
     fn ext_as_string(&self) -> Option<String>;
 }
 
-impl PathExt for Path {
+impl PathExt for Utf8Path {
+    fn is_tagged(&self, tag: &str) -> bool {
+        self.to_owned().is_tagged(tag)
+    }
+
+    fn fname_tokens(&self) -> anyhow::Result<Vec<String>> {
+        self.to_owned().fname_tokens()
+    }
+
+    fn get_number(&self) -> Option<i32> {
+        self.to_owned().get_number()
+    }
+
     fn ext_as_string(&self) -> Option<String> {
-        self.extension()
-            .and_then(|ext| ext.to_str())
-            .map(|s| s.to_string())
+        self.to_owned().ext_as_string()
+    }
+}
+
+impl PathExt for Utf8PathBuf {
+    fn ext_as_string(&self) -> Option<String> {
+        self.extension().map(|e| e.to_owned())
     }
 
     // How do we decide if something is tagged? In descending order of
@@ -40,16 +57,16 @@ impl PathExt for Path {
         }
     }
 
-    fn fname_tokens(&self) -> Result<Vec<String>, String> {
+    fn fname_tokens(&self) -> anyhow::Result<Vec<String>> {
         let basename = match self.file_name() {
-            Some(name) => name.to_string_lossy().to_string(),
-            None => return Err("Invalid file name".to_string()),
+            Some(name) => name.to_owned(),
+            None => return Err(anyhow!("Invalid file name")),
         };
 
-        let tokens: Vec<String> = basename.split(".").map(|s| s.to_string()).collect();
+        let tokens: Vec<String> = basename.split(".").map(|s| s.to_owned()).collect();
 
         if tokens.len() < 3 {
-            return Err("Filename does not contain enough information".to_string());
+            return Err(anyhow!("Filename does not contain enough information"));
         }
 
         Ok(tokens)
@@ -57,24 +74,20 @@ impl PathExt for Path {
 
     fn get_number(&self) -> Option<i32> {
         let tokens = self.fname_tokens().unwrap_or_default();
-
-        match tokens[tokens.len() - 2].parse::<i32>() {
-            Ok(i) => Some(i),
-            Err(_e) => None,
-        }
+        tokens[tokens.len() - 2].parse::<i32>().ok()
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
+    use test_utils::fixture;
 
     #[test]
     fn test_ext_as_string() {
         assert_eq!(
             Some("txt".to_string()),
-            Path::new("/path/file.txt").ext_as_string()
+            Utf8PathBuf::from("/path/file.txt").ext_as_string()
         );
     }
 

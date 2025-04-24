@@ -1,4 +1,5 @@
 use crate::utils::types::Opts;
+use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand};
 
 mod subcommands;
@@ -42,9 +43,15 @@ struct DirArgs {
 #[derive(Debug, Subcommand)]
 enum DirCommands {
     /// Renames all files sequentially to <dir_name>.[tag.]<number>.suffix
-    Consolidate { dir: Vec<String> },
+    Consolidate {
+        #[arg(required = true)]
+        dirs: Vec<Utf8PathBuf>,
+    },
     /// Renumbers files which match the naming scheme in order of modification time  
-    NumByAge { dir: Vec<String> },
+    NumByAge {
+        #[arg(required = true)]
+        dirs: Vec<Utf8PathBuf>,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -57,11 +64,23 @@ struct FileArgs {
 #[derive(Debug, Subcommand)]
 enum FileCommands {
     /// Flips the presence of the filename tag
-    Flip { flist: Vec<String> },
+    #[command(alias = "flip-tag")]
+    Flip {
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
     /// Sets the filename tag if it is not set already
-    Set { flist: Vec<String> },
+    #[command(alias = "set-tag")]
+    Set {
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
     /// Removes any filename tag
-    Unset { flist: Vec<String> },
+    #[command(alias = "unset-tag")]
+    Unset {
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
 }
 
 fn main() {
@@ -73,36 +92,34 @@ fn main() {
         tag: cli.tag.clone(),
     };
 
-    if let Err(e) = run_command(cli, opts) {
-        eprintln!("ERROR main: {}", e);
-        std::process::exit(1);
-    }
-}
-
-fn run_command(cli: Cli, opts: Opts) -> Result<(), Box<dyn std::error::Error>> {
-    match cli.command {
+    let result = match cli.command {
         Commands::Dir(dir) => match dir.command {
             Some(dir_cmd) => match dir_cmd {
-                DirCommands::Consolidate { dir } => {
-                    Ok(subcommands::dir_consolidate::run(&dir, opts)?)
+                DirCommands::Consolidate { dirs } => {
+                    subcommands::dir_consolidate::run(&dirs, &opts)
                 }
-                DirCommands::NumByAge { dir } => Ok(subcommands::dir_num_by_age::run(&dir, opts)?),
+                DirCommands::NumByAge { dirs } => subcommands::dir_num_by_age::run(&dirs, &opts),
             },
             None => {
                 eprintln!("ERROR: the 'dir' command needs a subcommand.");
-                std::process::exit(1);
+                std::process::exit(2);
             }
         },
         Commands::File(file) => match file.command {
             Some(file_cmd) => match file_cmd {
-                FileCommands::Flip { flist } => Ok(subcommands::file_flip::run(&flist, opts)?),
-                FileCommands::Set { flist } => Ok(subcommands::file_set::run(&flist, opts)?),
-                FileCommands::Unset { flist } => Ok(subcommands::file_unset::run(&flist, opts)?),
+                FileCommands::Flip { files } => subcommands::file_flip::run(&files, &opts),
+                FileCommands::Set { files } => subcommands::file_set::run(&files, &opts),
+                FileCommands::Unset { files } => subcommands::file_unset::run(&files, &opts),
             },
             None => {
                 eprintln!("ERROR: the 'file' command needs a subcommand.");
-                std::process::exit(1);
+                std::process::exit(2);
             }
         },
+    };
+
+    match result {
+        Ok(_) => std::process::exit(0),
+        Err(_) => std::process::exit(1),
     }
 }

@@ -1,11 +1,10 @@
 use crate::utils::file::PathExt;
-use crate::utils::file_tokens;
-use crate::utils::types;
+use crate::utils::types::{FileTokens, RenameActions, RenameActionsResult};
+use anyhow::anyhow;
+use camino::{Utf8Path, Utf8PathBuf};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::{fs, io};
 
-pub type FileTokenMapSubtype = HashMap<PathBuf, file_tokens::FileTokens>;
+pub type FileTokenMapSubtype = HashMap<Utf8PathBuf, FileTokens>;
 
 #[derive(Debug)]
 pub struct FileTokenMap {
@@ -14,16 +13,16 @@ pub struct FileTokenMap {
 }
 
 pub trait DirExt {
-    fn categorise_files(&self, tag: String) -> Result<FilesInDir, io::Error>;
-    fn file_token_map(&self, tag: &str) -> Result<FileTokenMap, io::Error>;
+    fn categorise_files(&self, tag: String) -> anyhow::Result<FilesInDir>;
+    fn file_token_map(&self, tag: &str) -> anyhow::Result<FileTokenMap>;
 }
 
 #[derive(Debug)]
 pub struct FilesInDirSubtype {
-    pub dirname: PathBuf,
+    pub dirname: Utf8PathBuf,
     pub basename: String,
-    pub rogue_files: Vec<PathBuf>,
-    pub numbered_files: Vec<PathBuf>,
+    pub rogue_files: Vec<Utf8PathBuf>,
+    pub numbered_files: Vec<Utf8PathBuf>,
     pub numbers: Vec<i32>,
 }
 
@@ -33,7 +32,7 @@ pub struct FilesInDir {
 }
 
 impl FilesInDirSubtype {
-    fn new(dirname: PathBuf, basename: &str) -> Self {
+    fn new(dirname: Utf8PathBuf, basename: &str) -> Self {
         FilesInDirSubtype {
             dirname,
             basename: basename.to_string(),
@@ -70,21 +69,21 @@ impl FilesInDirSubtype {
         }
     }
 
-    pub fn fname_from_stem(&self, file: &Path, num: i32) -> PathBuf {
+    pub fn fname_from_stem(&self, file: &Utf8Path, num: i32) -> Utf8PathBuf {
         let stem = format!("{}.{}", self.basename, pad_num(num));
 
-        let stem = match file.ext_as_string() {
+        let stem = match file.extension() {
             Some(ext) => format!("{}.{}", stem, ext),
             None => stem,
         };
 
-        let fname = PathBuf::from(&stem);
+        let fname = Utf8PathBuf::from(&stem);
         self.dirname.join(fname)
     }
 }
 
 impl FilesInDir {
-    fn new(dirname: PathBuf, dir_basename: &str, tag: &str) -> Self {
+    fn new(dirname: Utf8PathBuf, dir_basename: &str, tag: &str) -> Self {
         FilesInDir {
             untagged: FilesInDirSubtype::new(dirname.clone(), dir_basename),
             tagged: FilesInDirSubtype::new(
@@ -94,7 +93,7 @@ impl FilesInDir {
         }
     }
 
-    pub fn flip_tag(&self, file: PathBuf, tag: &str) -> types::RenameActionsResult {
+    pub fn flip_tag(&self, file: Utf8PathBuf, tag: &str) -> RenameActionsResult {
         if file.is_tagged(tag) {
             self.unset_tag(file, tag)
         } else {
@@ -102,8 +101,8 @@ impl FilesInDir {
         }
     }
 
-    pub fn set_tag(&self, file: PathBuf, tag: &str) -> types::RenameActionsResult {
-        let mut ret: types::RenameActions = Vec::new();
+    pub fn set_tag(&self, file: Utf8PathBuf, tag: &str) -> RenameActionsResult {
+        let mut ret: RenameActions = Vec::new();
 
         if !file.is_tagged(tag) {
             let target = self.tagged.fname_from_stem(&file, self.tagged.first_slot());
@@ -113,8 +112,8 @@ impl FilesInDir {
         Ok(ret)
     }
 
-    pub fn unset_tag(&self, file: PathBuf, tag: &str) -> types::RenameActionsResult {
-        let mut ret: types::RenameActions = Vec::new();
+    pub fn unset_tag(&self, file: Utf8PathBuf, tag: &str) -> RenameActionsResult {
+        let mut ret: RenameActions = Vec::new();
 
         if file.is_tagged(tag) {
             let target = self
@@ -127,24 +126,21 @@ impl FilesInDir {
     }
 }
 
-pub fn basename<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
-    let path_ref: &Path = path.as_ref();
+pub fn basename<P: AsRef<Utf8Path>>(path: P) -> anyhow::Result<String> {
+    let path_ref: &Utf8Path = path.as_ref();
 
     match path_ref.file_name() {
-        Some(name) => Ok(name.to_string_lossy().into_owned()),
-        None => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Invalid directory name",
-        )),
+        Some(name) => Ok(name.to_owned()),
+        None => Err(anyhow!("Invalid directory name")),
     }
 }
 
-impl DirExt for Path {
-    fn categorise_files(&self, tag: String) -> Result<FilesInDir, io::Error> {
+impl DirExt for Utf8Path {
+    fn categorise_files(&self, tag: String) -> anyhow::Result<FilesInDir> {
         let dir_basename = basename(self)?;
         let mut ret = FilesInDir::new(self.to_path_buf(), dir_basename.as_str(), &tag);
 
-        for file in fs::read_dir(self)? {
+        for file in self.read_dir_utf8()? {
             let file = file?;
             let path = file.path();
 
@@ -152,7 +148,7 @@ impl DirExt for Path {
                 continue;
             }
 
-            let file_basename = basename(&path)?;
+            let file_basename = basename(path)?;
 
             if file_basename.starts_with(dir_basename.as_str()) {
                 if path.is_tagged(&tag) {
@@ -183,13 +179,13 @@ impl DirExt for Path {
         Ok(ret)
     }
 
-    fn file_token_map(&self, tag: &str) -> Result<FileTokenMap, io::Error> {
+    fn file_token_map(&self, tag: &str) -> anyhow::Result<FileTokenMap> {
         let mut ret = FileTokenMap {
             tagged: HashMap::new(),
             untagged: HashMap::new(),
         };
 
-        for file in fs::read_dir(self)? {
+        for file in self.read_dir_utf8()? {
             let file = file?;
             let path = file.path();
 
@@ -197,11 +193,11 @@ impl DirExt for Path {
                 continue;
             }
 
-            if let Ok(tokens) = file_tokens::FileTokens::new(&path, tag) {
+            if let Ok(tokens) = FileTokens::new(path, tag) {
                 if path.is_tagged(tag) {
-                    ret.tagged.insert(path, tokens);
+                    ret.tagged.insert(path.to_owned(), tokens);
                 } else {
-                    ret.untagged.insert(path, tokens);
+                    ret.untagged.insert(path.to_owned(), tokens);
                 }
             }
         }
@@ -218,7 +214,7 @@ pub fn pad_num(num: i32) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
+    use test_utils::fixture;
 
     #[test]
     fn test_file_token_map() {
@@ -227,7 +223,7 @@ mod test {
         assert_eq!(5, result.tagged.len());
         assert_eq!(4, result.untagged.len());
 
-        assert!(PathBuf::from("test/no/such/dir")
+        assert!(Utf8PathBuf::from("test/no/such/dir")
             .file_token_map("tag")
             .is_err());
     }

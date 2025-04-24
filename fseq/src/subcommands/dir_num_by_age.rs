@@ -1,29 +1,28 @@
 use crate::utils::common;
 use crate::utils::dir::DirExt;
-use crate::utils::file_tokens;
-use crate::utils::types;
+use crate::utils::types::{
+    FileTokens, Opts, PathAndTokens, RenameActionWithIndex, RenameActions, RenameActionsResult,
+};
+use anyhow::Context;
+use camino::{Utf8Path, Utf8PathBuf};
 use std::collections::HashMap;
-use std::io;
-use std::path::{Path, PathBuf};
-
-type RenameActionWithIndex = Option<(usize, (PathBuf, PathBuf))>;
 
 // Re-orders a directory, preserving tagging, changing the file numbers to match
 // the mtime order of the files.
 
-pub fn run(dirlist: &Vec<String>, opts: types::Opts) -> Result<(), io::Error> {
+pub fn run(dirlist: &Vec<Utf8PathBuf>, opts: &Opts) -> anyhow::Result<()> {
     crate::run!(dirlist, opts)
 }
 
-fn movers_for_type(files: HashMap<PathBuf, file_tokens::FileTokens>) -> types::RenameActionsResult {
-    let mut mtime_vec: Vec<(PathBuf, file_tokens::FileTokens)> = files.into_iter().collect();
+fn movers_for_type(files: HashMap<Utf8PathBuf, FileTokens>) -> RenameActionsResult {
+    let mut mtime_vec: Vec<PathAndTokens> = files.into_iter().collect();
     mtime_vec.sort_by(|a, b| a.1.mtime.cmp(&b.1.mtime));
     make_move_list(find_movers(&mtime_vec))
 }
 
 // Assumes a properly consolidated directory. Files outside the naming convention
 // will be left alone.
-fn actions(dir: &Path, tag: &str) -> types::RenameActionsResult {
+fn actions(dir: &Utf8Path, tag: &str) -> RenameActionsResult {
     let file_map = dir.file_token_map(tag)?;
     let mut untagged = movers_for_type(file_map.untagged)?;
     let tagged = movers_for_type(file_map.tagged)?;
@@ -34,8 +33,8 @@ fn actions(dir: &Path, tag: &str) -> types::RenameActionsResult {
 
 // This makes a naive move list. We need to work out what order to do the moves
 // in.
-fn find_movers(move_vec: &[(PathBuf, file_tokens::FileTokens)]) -> types::RenameActions {
-    let mut ret: types::RenameActions = Vec::new();
+fn find_movers(move_vec: &[PathAndTokens]) -> RenameActions {
+    let mut ret: RenameActions = Vec::new();
     let mut expected_number = 1;
 
     for (path, tokens) in move_vec.iter() {
@@ -54,7 +53,7 @@ fn find_movers(move_vec: &[(PathBuf, file_tokens::FileTokens)]) -> types::Rename
 
 // Returns the index and the value of the tuple in the inputs vec whose first
 // (source) element is idx. (The dest from a previous move.)
-fn find_next_link(inputs: &types::RenameActions, to_find: &PathBuf) -> RenameActionWithIndex {
+fn find_next_link(inputs: &RenameActions, to_find: &Utf8PathBuf) -> RenameActionWithIndex {
     inputs
         .iter()
         .enumerate()
@@ -62,20 +61,14 @@ fn find_next_link(inputs: &types::RenameActions, to_find: &PathBuf) -> RenameAct
         .map(|(index, (from, to))| (index, (from.clone(), to.clone())))
 }
 
-fn tmp_name(original_name: &Path) -> Result<PathBuf, io::Error> {
-    let dir = original_name
-        .parent()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "cannot make temp name"))?;
-
-    let basename = original_name
-        .file_name()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "file name missing"))?;
-
-    Ok(dir.join(format!("_{}", basename.to_string_lossy())))
+fn tmp_name(original_name: &Utf8Path) -> anyhow::Result<Utf8PathBuf> {
+    let dir = original_name.parent().context("cannot make temp name")?;
+    let basename = original_name.file_name().context("file name missing")?;
+    Ok(dir.join(format!("_{}", basename)))
 }
 
-fn make_move_list(mut input: types::RenameActions) -> types::RenameActionsResult {
-    let mut ret: types::RenameActions = Vec::new();
+fn make_move_list(mut input: RenameActions) -> RenameActionsResult {
+    let mut ret: RenameActions = Vec::new();
 
     while !input.is_empty() {
         let (mut src, dest) = input.remove(0).clone();
@@ -104,8 +97,8 @@ fn make_move_list(mut input: types::RenameActions) -> types::RenameActionsResult
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::{file_token_with_time, fixture};
     use std::time::{Duration, SystemTime};
+    use test_utils::fixture;
 
     #[test]
     fn test_find_next_link() {
@@ -140,7 +133,7 @@ mod test {
     #[test]
     fn test_make_move_list() {
         // Nothing to do.
-        let empty_vec: Vec<(PathBuf, PathBuf)> = vec![];
+        let empty_vec: RenameActions = vec![];
         assert_eq!(empty_vec.clone(), make_move_list(empty_vec).unwrap());
 
         // One move, to an empty slot.
@@ -238,7 +231,7 @@ mod test {
     #[test]
     fn test_find_movers() {
         let now = SystemTime::now();
-        assert!(find_movers(&vec![
+        assert!(find_movers(&[
             (file_token_with_time(
                 &fixture("age.dir/age.dir.0001.jpg"),
                 now - Duration::new(3, 0)
@@ -265,7 +258,7 @@ mod test {
                     fixture("age.dir/age.dir.0003.jpg"),
                 ),
             ],
-            find_movers(&vec![
+            find_movers(&[
                 (file_token_with_time(
                     &fixture("age.dir/age.dir.0003.jpg"),
                     now - Duration::new(3, 0)
@@ -280,5 +273,11 @@ mod test {
                 )),
             ]),
         );
+    }
+
+    fn file_token_with_time(file: &Utf8Path, ts: SystemTime) -> PathAndTokens {
+        let mut tokens = FileTokens::new(file, "tag").unwrap();
+        tokens.mtime = ts;
+        (file.to_owned(), tokens)
     }
 }
