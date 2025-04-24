@@ -94,8 +94,10 @@ fn main() {
     let result = match cli.command {
         Commands::Dir(dir) => match dir.command {
             Some(dir_cmd) => match dir_cmd {
-                DirCommands::Consolidate { dirs } => subcommands::dir_consolidate::run(&dirs, opts),
-                DirCommands::NumByAge { dirs } => subcommands::dir_num_by_age::run(&dirs, opts),
+                DirCommands::Consolidate { dirs } => {
+                    subcommands::dir_consolidate::run(&dirs, &opts)
+                }
+                DirCommands::NumByAge { dirs } => subcommands::dir_num_by_age::run(&dirs, &opts),
             },
             None => {
                 eprintln!("ERROR: the 'dir' command needs a subcommand.");

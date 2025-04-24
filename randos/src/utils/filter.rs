@@ -65,9 +65,9 @@ mod test {
         let file_2_mtime = FileTime::from_unix_time(1737200000, 0);
         let file_3_mtime = FileTime::from_unix_time(1737300000, 0);
 
-        set_file_times(&fixture("dir_2/file_2_1.txt"), file_1_mtime, file_1_mtime).unwrap();
-        set_file_times(&fixture("dir_2/file_2_2.txt"), file_2_mtime, file_2_mtime).unwrap();
-        set_file_times(&fixture("dir_2/file_2_3.txt"), file_3_mtime, file_3_mtime).unwrap();
+        set_file_times(fixture("dir_2/file_2_1.txt"), file_1_mtime, file_1_mtime).unwrap();
+        set_file_times(fixture("dir_2/file_2_2.txt"), file_2_mtime, file_2_mtime).unwrap();
+        set_file_times(fixture("dir_2/file_2_3.txt"), file_3_mtime, file_3_mtime).unwrap();
 
         let selector_opts = FilterOpts {
             extensions: None,

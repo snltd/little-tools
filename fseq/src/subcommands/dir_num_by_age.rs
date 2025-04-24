@@ -1,7 +1,7 @@
 use crate::utils::common;
 use crate::utils::dir::DirExt;
 use crate::utils::file_tokens;
-use crate::utils::types;
+use crate::utils::types::{Opts, RenameActions, RenameActionsResult};
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -11,11 +11,11 @@ type RenameActionWithIndex = Option<(usize, (PathBuf, PathBuf))>;
 // Re-orders a directory, preserving tagging, changing the file numbers to match
 // the mtime order of the files.
 
-pub fn run(dirlist: &Vec<String>, opts: types::Opts) -> Result<(), io::Error> {
+pub fn run(dirlist: &Vec<String>, opts: &Opts) -> anyhow::Result<()> {
     crate::run!(dirlist, opts)
 }
 
-fn movers_for_type(files: HashMap<PathBuf, file_tokens::FileTokens>) -> types::RenameActionsResult {
+fn movers_for_type(files: HashMap<PathBuf, file_tokens::FileTokens>) -> RenameActionsResult {
     let mut mtime_vec: Vec<(PathBuf, file_tokens::FileTokens)> = files.into_iter().collect();
     mtime_vec.sort_by(|a, b| a.1.mtime.cmp(&b.1.mtime));
     make_move_list(find_movers(&mtime_vec))
@@ -23,7 +23,7 @@ fn movers_for_type(files: HashMap<PathBuf, file_tokens::FileTokens>) -> types::R
 
 // Assumes a properly consolidated directory. Files outside the naming convention
 // will be left alone.
-fn actions(dir: &Path, tag: &str) -> types::RenameActionsResult {
+fn actions(dir: &Path, tag: &str) -> RenameActionsResult {
     let file_map = dir.file_token_map(tag)?;
     let mut untagged = movers_for_type(file_map.untagged)?;
     let tagged = movers_for_type(file_map.tagged)?;
@@ -34,8 +34,8 @@ fn actions(dir: &Path, tag: &str) -> types::RenameActionsResult {
 
 // This makes a naive move list. We need to work out what order to do the moves
 // in.
-fn find_movers(move_vec: &[(PathBuf, file_tokens::FileTokens)]) -> types::RenameActions {
-    let mut ret: types::RenameActions = Vec::new();
+fn find_movers(move_vec: &[(PathBuf, file_tokens::FileTokens)]) -> RenameActions {
+    let mut ret: RenameActions = Vec::new();
     let mut expected_number = 1;
 
     for (path, tokens) in move_vec.iter() {
@@ -54,7 +54,7 @@ fn find_movers(move_vec: &[(PathBuf, file_tokens::FileTokens)]) -> types::Rename
 
 // Returns the index and the value of the tuple in the inputs vec whose first
 // (source) element is idx. (The dest from a previous move.)
-fn find_next_link(inputs: &types::RenameActions, to_find: &PathBuf) -> RenameActionWithIndex {
+fn find_next_link(inputs: &RenameActions, to_find: &PathBuf) -> RenameActionWithIndex {
     inputs
         .iter()
         .enumerate()
@@ -74,8 +74,8 @@ fn tmp_name(original_name: &Path) -> Result<PathBuf, io::Error> {
     Ok(dir.join(format!("_{}", basename.to_string_lossy())))
 }
 
-fn make_move_list(mut input: types::RenameActions) -> types::RenameActionsResult {
-    let mut ret: types::RenameActions = Vec::new();
+fn make_move_list(mut input: RenameActions) -> RenameActionsResult {
+    let mut ret: RenameActions = Vec::new();
 
     while !input.is_empty() {
         let (mut src, dest) = input.remove(0).clone();

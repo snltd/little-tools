@@ -1,6 +1,6 @@
 use crate::utils::file::PathExt;
-use crate::utils::{common, dir, dir::DirExt, types};
-use std::io;
+use crate::utils::types::{Opts, RenameActions, RenameActionsResult};
+use crate::utils::{common, dir, dir::DirExt};
 use std::path::Path;
 
 // Consolidates a directory. If the filename numbers are non-contiguous, pull
@@ -8,11 +8,11 @@ use std::path::Path;
 // is preserved, and filenames not matching the base pattern ("rogues") are
 // renamed to fit the pattern. File extension is preserved.
 //
-pub fn run(dirlist: &Vec<String>, opts: types::Opts) -> Result<(), io::Error> {
+pub fn run(dirlist: &Vec<String>, opts: &Opts) -> anyhow::Result<()> {
     crate::run!(dirlist, opts)
 }
 
-fn actions(dir: &Path, tag: &str) -> types::RenameActionsResult {
+fn actions(dir: &Path, tag: &str) -> RenameActionsResult {
     let files = dir.categorise_files(tag.to_owned())?;
 
     let mut actions = consolidate_actions_for_base(files.untagged);
@@ -22,8 +22,8 @@ fn actions(dir: &Path, tag: &str) -> types::RenameActionsResult {
     Ok(actions)
 }
 
-fn consolidate_actions_for_base(files: dir::FilesInDirSubtype) -> types::RenameActions {
-    let mut ret: types::RenameActions =
+fn consolidate_actions_for_base(files: dir::FilesInDirSubtype) -> RenameActions {
+    let mut ret: RenameActions =
         Vec::with_capacity(files.numbered_files.len() + files.rogue_files.len());
     let numbered_len = files.numbered_files.len();
     let hole_list = files.hole_list();
@@ -63,7 +63,7 @@ mod test {
     fn test_consolidate_actions() {
         let needs_work = actions(&fixture("some.dir"), "tag");
 
-        let expected: types::RenameActions = vec![
+        let expected: RenameActions = vec![
             (
                 fixture("some.dir/some.dir.0005.jpg"),
                 fixture("some.dir/some.dir.0004.jpg"),
@@ -88,7 +88,7 @@ mod test {
 
         assert_eq!(expected, needs_work.unwrap());
 
-        let expected_empty: types::RenameActions = Vec::new();
+        let expected_empty: RenameActions = Vec::new();
         assert_eq!(
             expected_empty,
             actions(&fixture("sorted.dir"), "xx").unwrap()

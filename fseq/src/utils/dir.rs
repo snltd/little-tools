@@ -1,9 +1,10 @@
 use crate::utils::file::PathExt;
 use crate::utils::file_tokens;
-use crate::utils::types;
+use crate::utils::types::{RenameActions, RenameActionsResult};
+use anyhow::anyhow;
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
 
 pub type FileTokenMapSubtype = HashMap<PathBuf, file_tokens::FileTokens>;
 
@@ -14,8 +15,8 @@ pub struct FileTokenMap {
 }
 
 pub trait DirExt {
-    fn categorise_files(&self, tag: String) -> Result<FilesInDir, io::Error>;
-    fn file_token_map(&self, tag: &str) -> Result<FileTokenMap, io::Error>;
+    fn categorise_files(&self, tag: String) -> anyhow::Result<FilesInDir>;
+    fn file_token_map(&self, tag: &str) -> anyhow::Result<FileTokenMap>;
 }
 
 #[derive(Debug)]
@@ -94,7 +95,7 @@ impl FilesInDir {
         }
     }
 
-    pub fn flip_tag(&self, file: PathBuf, tag: &str) -> types::RenameActionsResult {
+    pub fn flip_tag(&self, file: PathBuf, tag: &str) -> RenameActionsResult {
         if file.is_tagged(tag) {
             self.unset_tag(file, tag)
         } else {
@@ -102,8 +103,8 @@ impl FilesInDir {
         }
     }
 
-    pub fn set_tag(&self, file: PathBuf, tag: &str) -> types::RenameActionsResult {
-        let mut ret: types::RenameActions = Vec::new();
+    pub fn set_tag(&self, file: PathBuf, tag: &str) -> RenameActionsResult {
+        let mut ret: RenameActions = Vec::new();
 
         if !file.is_tagged(tag) {
             let target = self.tagged.fname_from_stem(&file, self.tagged.first_slot());
@@ -113,8 +114,8 @@ impl FilesInDir {
         Ok(ret)
     }
 
-    pub fn unset_tag(&self, file: PathBuf, tag: &str) -> types::RenameActionsResult {
-        let mut ret: types::RenameActions = Vec::new();
+    pub fn unset_tag(&self, file: PathBuf, tag: &str) -> RenameActionsResult {
+        let mut ret: RenameActions = Vec::new();
 
         if file.is_tagged(tag) {
             let target = self
@@ -127,20 +128,17 @@ impl FilesInDir {
     }
 }
 
-pub fn basename<P: AsRef<Path>>(path: P) -> Result<String, io::Error> {
+pub fn basename<P: AsRef<Path>>(path: P) -> anyhow::Result<String> {
     let path_ref: &Path = path.as_ref();
 
     match path_ref.file_name() {
         Some(name) => Ok(name.to_string_lossy().into_owned()),
-        None => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Invalid directory name",
-        )),
+        None => Err(anyhow!("Invalid directory name")),
     }
 }
 
 impl DirExt for Path {
-    fn categorise_files(&self, tag: String) -> Result<FilesInDir, io::Error> {
+    fn categorise_files(&self, tag: String) -> anyhow::Result<FilesInDir> {
         let dir_basename = basename(self)?;
         let mut ret = FilesInDir::new(self.to_path_buf(), dir_basename.as_str(), &tag);
 
@@ -183,7 +181,7 @@ impl DirExt for Path {
         Ok(ret)
     }
 
-    fn file_token_map(&self, tag: &str) -> Result<FileTokenMap, io::Error> {
+    fn file_token_map(&self, tag: &str) -> anyhow::Result<FileTokenMap> {
         let mut ret = FileTokenMap {
             tagged: HashMap::new(),
             untagged: HashMap::new(),
