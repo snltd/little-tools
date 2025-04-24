@@ -28,7 +28,10 @@ pub fn take_actions(action_list: RenameActionsResult, opts: &Opts) -> Result<(),
                 }
             }
         }
-        Err(e) => println!("ERROR: {}", e),
+        Err(e) => {
+            errs += 1;
+            eprintln!("ERROR: {}", e);
+        }
     }
 
     if errs > 0 {

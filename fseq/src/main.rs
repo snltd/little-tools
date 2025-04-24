@@ -42,9 +42,15 @@ struct DirArgs {
 #[derive(Debug, Subcommand)]
 enum DirCommands {
     /// Renames all files sequentially to <dir_name>.[tag.]<number>.suffix
-    Consolidate { dir: Vec<String> },
+    Consolidate {
+        #[arg(required = true)]
+        dirs: Vec<String>,
+    },
     /// Renumbers files which match the naming scheme in order of modification time  
-    NumByAge { dir: Vec<String> },
+    NumByAge {
+        #[arg(required = true)]
+        dirs: Vec<String>,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -57,16 +63,19 @@ struct FileArgs {
 #[derive(Debug, Subcommand)]
 enum FileCommands {
     /// Flips the presence of the filename tag
+    #[command(alias = "flip-tag")]
     Flip {
         #[arg(required = true)]
         files: Vec<String>,
     },
     /// Sets the filename tag if it is not set already
+    #[command(alias = "set-tag")]
     Set {
         #[arg(required = true)]
         files: Vec<String>,
     },
     /// Removes any filename tag
+    #[command(alias = "unset-tag")]
     Unset {
         #[arg(required = true)]
         files: Vec<String>,
@@ -85,12 +94,12 @@ fn main() {
     let result = match cli.command {
         Commands::Dir(dir) => match dir.command {
             Some(dir_cmd) => match dir_cmd {
-                DirCommands::Consolidate { dir } => subcommands::dir_consolidate::run(&dir, opts),
-                DirCommands::NumByAge { dir } => subcommands::dir_num_by_age::run(&dir, opts),
+                DirCommands::Consolidate { dirs } => subcommands::dir_consolidate::run(&dirs, opts),
+                DirCommands::NumByAge { dirs } => subcommands::dir_num_by_age::run(&dirs, opts),
             },
             None => {
                 eprintln!("ERROR: the 'dir' command needs a subcommand.");
-                std::process::exit(1);
+                std::process::exit(2);
             }
         },
         Commands::File(file) => match file.command {
@@ -101,7 +110,7 @@ fn main() {
             },
             None => {
                 eprintln!("ERROR: the 'file' command needs a subcommand.");
-                std::process::exit(1);
+                std::process::exit(2);
             }
         },
     };
