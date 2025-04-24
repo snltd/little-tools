@@ -59,7 +59,7 @@ fn expand(path: &Utf8PathBuf) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
+    use test_utils::fixture;
 
     #[test]
     fn test_name_from() {

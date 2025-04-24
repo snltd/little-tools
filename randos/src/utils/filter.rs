@@ -55,9 +55,9 @@ pub fn is_candidate(file: &Utf8Path, opts: &FilterOpts) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::spec_helper::fixture;
     use filetime::{set_file_times, FileTime};
     use regex::Regex;
+    use test_utils::fixture;
 
     #[test]
     fn test_is_candidates_age_filter() {
