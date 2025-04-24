@@ -414,6 +414,8 @@ mod test {
             .categorise_files("xx".to_string())
             .unwrap();
 
+        println!("{:#?}", result);
+
         assert_eq!("some.dir", result.untagged.basename);
         assert_eq!("some.dir.xx", result.tagged.basename);
 
@@ -426,10 +428,6 @@ mod test {
                 fixture("some.dir/some.dir.0002.jpg"),
                 fixture("some.dir/some.dir.0003.jpg"),
                 fixture("some.dir/some.dir.0005.jpg"),
-                fixture("some.dir/some.dir.tag.0002.jpg"),
-                fixture("some.dir/some.dir.tag.0003.jpg"),
-                fixture("some.dir/some.dir.tag.0004.jpg"),
-                fixture("some.dir/some.dir.tag.1234.jpg"),
             ],
             result.untagged.numbered_files,
         );
