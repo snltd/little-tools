@@ -1,8 +1,9 @@
+use anyhow::anyhow;
 use std::path::Path;
 
 pub trait PathExt {
     fn is_tagged(&self, tag: &str) -> bool;
-    fn fname_tokens(&self) -> Result<Vec<String>, String>;
+    fn fname_tokens(&self) -> anyhow::Result<Vec<String>>;
     fn get_number(&self) -> Option<i32>;
     fn ext_as_string(&self) -> Option<String>;
 }
@@ -40,16 +41,16 @@ impl PathExt for Path {
         }
     }
 
-    fn fname_tokens(&self) -> Result<Vec<String>, String> {
+    fn fname_tokens(&self) -> anyhow::Result<Vec<String>> {
         let basename = match self.file_name() {
             Some(name) => name.to_string_lossy().to_string(),
-            None => return Err("Invalid file name".to_string()),
+            None => return Err(anyhow!("Invalid file name")),
         };
 
         let tokens: Vec<String> = basename.split(".").map(|s| s.to_string()).collect();
 
         if tokens.len() < 3 {
-            return Err("Filename does not contain enough information".to_string());
+            return Err(anyhow!("Filename does not contain enough information"));
         }
 
         Ok(tokens)
@@ -57,11 +58,7 @@ impl PathExt for Path {
 
     fn get_number(&self) -> Option<i32> {
         let tokens = self.fname_tokens().unwrap_or_default();
-
-        match tokens[tokens.len() - 2].parse::<i32>() {
-            Ok(i) => Some(i),
-            Err(_e) => None,
-        }
+        tokens[tokens.len() - 2].parse::<i32>().ok()
     }
 }
 

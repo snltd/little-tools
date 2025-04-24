@@ -1,16 +1,15 @@
 use crate::utils::types::{Opts, RenameActionsResult};
+use anyhow::anyhow;
+use common::verbose;
 use std::fs;
-use std::io;
 
-pub fn take_actions(action_list: RenameActionsResult, opts: &Opts) -> Result<(), std::io::Error> {
+pub fn take_actions(action_list: RenameActionsResult, opts: &Opts) -> anyhow::Result<()> {
     let mut errs = 0;
 
     match action_list {
         Ok(actions) => {
             for (src, dest) in actions.iter() {
-                if opts.noop || opts.verbose {
-                    println!("{} -> {}", src.display(), dest.display());
-                }
+                verbose!(opts, "{} -> {}", src.display(), dest.display());
 
                 if !opts.noop {
                     if dest.exists() {
@@ -35,7 +34,7 @@ pub fn take_actions(action_list: RenameActionsResult, opts: &Opts) -> Result<(),
     }
 
     if errs > 0 {
-        Err(io::Error::new(io::ErrorKind::Other, "action errors"))
+        Err(anyhow!("{} action errors", errs))
     } else {
         Ok(())
     }

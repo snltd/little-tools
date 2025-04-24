@@ -1,7 +1,8 @@
 use crate::utils::dir;
+use anyhow::{anyhow, Context};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use std::{fs, io};
 
 #[derive(Debug)]
 pub struct FileTokens {
@@ -15,28 +16,22 @@ pub struct FileTokens {
 }
 
 impl FileTokens {
-    pub fn new(file: &Path, tag: &str) -> Result<FileTokens, io::Error> {
+    pub fn new(file: &Path, tag: &str) -> anyhow::Result<FileTokens> {
         let file = file.canonicalize()?;
 
         let basename = file
             .file_name()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "cannot get basename"))?
+            .context("cannot get basename")?
             .to_string_lossy()
             .into_owned();
 
-        let dirname = file
-            .parent()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "cannot get dirname"))?
-            .to_path_buf();
+        let dirname = file.parent().context("cannot get dirname")?.to_path_buf();
 
         let tokens: Vec<&str> = basename.split('.').collect();
         let token_count = tokens.len();
 
         if token_count < 3 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "too few file tokens",
-            ));
+            return Err(anyhow!("too few file tokens",));
         }
 
         let number = tokens[token_count - 2].parse::<i32>().ok();
