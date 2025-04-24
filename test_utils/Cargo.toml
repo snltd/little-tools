@@ -6,3 +6,6 @@ edition = "2021"
 [lib]
 path = "src/lib.rs"
 
+[dependencies]
+assert_fs = "1"  
+predicates = "2"
