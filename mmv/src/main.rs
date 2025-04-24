@@ -266,7 +266,7 @@ mod test {
         };
 
         assert_eq!(
-            Utf8PathBuf::from("tests/data/bill_bill_bill.txt"),
+            fixture("bill_bill_bill.txt"),
             target_path(&fixture("file_file_file.txt"), &opts).unwrap()
         );
     }
