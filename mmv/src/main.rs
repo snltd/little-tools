@@ -1,258 +1,196 @@
+use anyhow::{anyhow, Context};
+use camino::Utf8PathBuf;
 use clap::Parser;
+use common::verbose;
 use std::fs;
-use std::path::PathBuf;
 mod replace;
 
 #[derive(Parser, Debug)]
 #[clap(version, about = "Batch renamer", long_about = None)]
-struct Args {
+struct Cli {
     /// pattern to replace. Supports Rust regexes
     #[clap(value_parser)]
     pattern: String,
-
     /// string that should replace <pattern>. Supports Rust capture groups, like ${1}
     #[clap(value_parser)]
     replace: String,
-
-    /// files to rename
-    #[clap(value_parser)]
-    files: Vec<PathBuf>,
-
     /// replace all occurrences of pattern
     #[clap(short = 'a', long = "all")]
     replace_all: bool,
-
     /// just print the rename operations
     #[clap(short, long)]
     noop: bool,
-
     /// overwrite existing files
     #[clap(short, long)]
     clobber: bool,
-
     /// show fully qualified pathnames in verbose output
     #[clap(short, long = "full")]
     full_names: bool,
-
     /// only replace the nth match (starts at 0)
     #[clap(
         short = 'm',
         long = "match",
-        conflicts_with = "replace-all",
+        conflicts_with = "replace_all",
         value_parser
     )]
     replace_nth: Option<usize>,
-
     /// with -n, only print target names
     #[clap(short, long = "terse")]
     terse_output: bool,
-
     /// be verbose
     #[clap(short, long)]
     verbose: bool,
-
     /// print arguments for git mv
     #[clap(short = 'G', long = "git", conflicts_with = "noop")]
+    git: bool,
+    /// files to rename
+    #[arg(required = true)]
+    files: Vec<Utf8PathBuf>,
+}
+
+struct Opts {
+    pattern: String,
+    replace_nth: Option<usize>,
+    replace: String,
+    replace_all: bool,
+    noop: bool,
+    clobber: bool,
+    full_names: bool,
+    terse_output: bool,
+    verbose: bool,
     git: bool,
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
+    let mut ret = 0;
 
-    if args.files.is_empty() {
-        eprintln!("No files.");
-        std::process::exit(1);
-    }
+    let opts = Opts {
+        pattern: cli.pattern,
+        replace: cli.replace,
+        replace_all: cli.replace_all,
+        replace_nth: cli.replace_nth,
+        noop: cli.noop,
+        clobber: cli.clobber,
+        full_names: cli.full_names,
+        terse_output: cli.terse_output,
+        verbose: cli.verbose,
+        git: cli.git,
+    };
 
-    process(&args);
-}
-
-fn process(args: &Args) {
-    for file in &args.files {
-        match process_file(file.to_path_buf(), args) {
-            Ok(msg) => {
-                if (args.verbose && !msg.ends_with("no change")) || args.noop {
-                    println!("{} {}", file.display(), msg);
-                }
-            }
-            Err(e) => println!("ERROR: {}: {}", file.display(), e),
+    for file in &cli.files {
+        if let Err(e) = process_file(file, &opts) {
+            ret = 1;
+            eprintln!("ERROR: {}: {}", file, e);
         }
     }
+
+    std::process::exit(ret)
 }
 
-fn process_file(file: PathBuf, args: &Args) -> Result<String, String> {
-    let target = target_path(file.clone(), args)?;
-    if target == file {
-        return Ok(String::from(": no change"));
-    }
+fn process_file(source: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
+    let target = target_path(source, opts)?;
+    let source_name;
+    let target_name;
 
-    if args.git {
-        println!("git mv {} {}", file.display(), target.display());
-    } else if !args.noop {
-        rename(file.clone(), target.clone(), args.clobber)?;
-    }
-
-    process_info(file, target, args.verbose || args.noop, args.terse_output)
-}
-
-fn process_info(
-    file: PathBuf,
-    target: PathBuf,
-    verbose: bool,
-    terse: bool,
-) -> Result<String, String> {
-    if !verbose {
-        return Ok(String::new());
-    }
-
-    let mut target_display = target.as_os_str();
-
-    if terse {
-        if let Some(p) = target.file_name() {
-            target_display = p;
-        };
-    }
-
-    let display_name = match target_display.to_str() {
-        Some(display_str) => display_str,
-        None => return Err(String::from("cannot parse filename")),
+    if opts.full_names {
+        source_name = source.to_string();
+        target_name = target.to_string();
+    } else {
+        source_name = source
+            .file_name()
+            .context("cannot get source file name")?
+            .to_owned();
+        target_name = target
+            .file_name()
+            .context("cannot get target file name")?
+            .to_owned();
     };
 
-    Ok(format!("{} -> {}", file.display(), display_name))
-}
-
-fn target_path(file: PathBuf, args: &Args) -> Result<PathBuf, String> {
-    if !file.exists() {
-        return Err(String::from("file not found"));
+    if target == *source {
+        verbose!(opts, "{}: no change", source_name);
+        return Ok(false);
     }
 
-    let filename = match file.to_str() {
-        Some(f) => f,
-        None => return Err(String::from("cannot parse filename")),
-    };
+    if opts.git {
+        println!("git mv {} {}", source, target);
+        Ok(true)
+    } else {
+        if opts.terse_output {
+            println!("{}", target_name);
+        } else {
+            verbose!(opts, "{} -> {}", source_name, target_name);
+        }
 
-    let target = match args.replace_nth {
-        Some(index) => replace::nth(&args.pattern, &args.replace, filename, index),
+        if opts.noop {
+            return Ok(false);
+        }
+
+        rename(source, &target, opts)?;
+        Ok(true)
+    }
+}
+
+fn target_path(source: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Utf8PathBuf> {
+    let source = source.canonicalize_utf8()?;
+
+    let dir = source.parent().context("cannot get parent")?;
+    let name = source.file_name().context("cannot get file name")?;
+    let pattern = opts.pattern.as_str();
+    let replace = opts.replace.as_str();
+
+    let target_name = match opts.replace_nth {
+        Some(index) => replace::nth(pattern, replace, name, index),
         None => {
-            if args.replace_all {
-                replace::all(&args.pattern, &args.replace, filename)
+            if opts.replace_all {
+                replace::all(pattern, replace, name)
             } else {
-                replace::first(&args.pattern, &args.replace, filename)
+                replace::first(pattern, replace, name)
             }
         }
     };
 
-    Ok(PathBuf::from(&target))
+    let target = dir.join(target_name);
+    Ok(target)
 }
 
-#[allow(dead_code)]
-fn rename(src: PathBuf, dest: PathBuf, clobber: bool) -> Result<(), String> {
-    if dest.exists() && !clobber {
-        return Err(String::from("filename collision"));
+fn rename(src: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<()> {
+    if dest.exists() && !opts.clobber {
+        return Err(anyhow!("filename collision"));
     }
 
-    match fs::rename(src, dest) {
-        Ok(_) => Ok(()),
-        Err(_) => Err(String::from("failed to rename")),
-    }
+    Ok(fs::rename(src, dest)?)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn test_process_output() {
-        assert_eq!(
-            Ok(String::from("")),
-            process_info(default_file(), default_file(), false, false)
-        );
-
-        assert_eq!(
-            Ok(String::from("dir/file_a -> dir/file_b")),
-            process_info(
-                PathBuf::from("dir/file_a"),
-                PathBuf::from("dir/file_b"),
-                true,
-                false
-            )
-        );
-
-        assert_eq!(
-            Ok(String::from("dir/file_a -> file_b")),
-            process_info(
-                PathBuf::from("dir/file_a"),
-                PathBuf::from("dir/file_b"),
-                true,
-                true
-            )
-        );
-    }
-
-    #[test]
-    fn target_does_not_exist() {
-        assert_eq!(
-            Err(String::from("file not found")),
-            target_path(PathBuf::from("/file/does/not/exist"), &default_args())
-        );
-    }
+    use test_utils::fixture;
 
     #[test]
     fn target_requires_no_change() {
-        let mut args = default_args();
-        args.pattern = String::from("nomatch");
+        let opts = Opts {
+            pattern: String::from("does_not_match"),
+            replace: String::from("new"),
+            clobber: false,
+            full_names: false,
+            git: false,
+            noop: true,
+            verbose: true,
+            replace_all: false,
+            replace_nth: None,
+            terse_output: false,
+        };
 
-        assert_eq!(Ok(default_file()), target_path(default_file(), &args));
+        assert_eq!(
+            fixture("file_file_file.txt"),
+            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+        );
     }
 
     #[test]
     fn target_requires_change_of_first_match() {
-        assert_eq!(
-            Ok(PathBuf::from("tests/data/new_file_file.txt")),
-            target_path(default_file(), &default_args())
-        );
-    }
-
-    #[test]
-    fn target_requires_change_of_second_match() {
-        let mut args = default_args();
-        args.replace_nth = Some(1);
-
-        assert_eq!(
-            Ok(PathBuf::from("tests/data/file_new_file.txt")),
-            target_path(default_file(), &args)
-        );
-    }
-    #[test]
-    fn target_requires_change_of_all_matches() {
-        let mut args = default_args();
-        args.replace_all = true;
-
-        assert_eq!(
-            Ok(PathBuf::from("tests/data/new_new_new.txt")),
-            target_path(default_file(), &args)
-        );
-    }
-
-    #[test]
-    fn target_requires_change_of_all_regex() {
-        let mut args = default_args();
-        args.pattern = String::from("f([a-z]+)e");
-        args.replace = String::from("b${1}l");
-        args.replace_all = true;
-
-        assert_eq!(
-            Ok(PathBuf::from("tests/data/bill_bill_bill.txt")),
-            target_path(default_file(), &args)
-        );
-    }
-
-    fn default_file() -> PathBuf {
-        PathBuf::from("tests/data/file_file_file.txt")
-    }
-
-    fn default_args() -> Args {
-        Args {
+        let opts = Opts {
             pattern: String::from("file"),
             replace: String::from("new"),
             clobber: false,
@@ -263,7 +201,73 @@ mod test {
             replace_all: false,
             replace_nth: None,
             terse_output: false,
-            files: vec![default_file()],
-        }
+        };
+
+        assert_eq!(
+            fixture("new_file_file.txt"),
+            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+        );
+    }
+
+    #[test]
+    fn target_requires_change_of_second_match() {
+        let opts = Opts {
+            pattern: String::from("file"),
+            replace: String::from("new"),
+            clobber: false,
+            full_names: false,
+            git: false,
+            noop: true,
+            verbose: true,
+            replace_all: false,
+            replace_nth: Some(1),
+            terse_output: false,
+        };
+
+        assert_eq!(
+            fixture("file_new_file.txt"),
+            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+        );
+    }
+    #[test]
+    fn target_requires_change_of_all_matches() {
+        let opts = Opts {
+            pattern: String::from("file"),
+            replace: String::from("new"),
+            clobber: false,
+            full_names: false,
+            git: false,
+            noop: true,
+            verbose: true,
+            replace_all: true,
+            replace_nth: None,
+            terse_output: false,
+        };
+
+        assert_eq!(
+            fixture("new_new_new.txt"),
+            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+        );
+    }
+
+    #[test]
+    fn target_requires_change_of_all_regex() {
+        let opts = Opts {
+            pattern: String::from("f([a-z]+)e"),
+            replace: String::from("b${1}l"),
+            replace_all: true,
+            clobber: false,
+            full_names: false,
+            git: false,
+            noop: true,
+            verbose: true,
+            replace_nth: None,
+            terse_output: false,
+        };
+
+        assert_eq!(
+            Utf8PathBuf::from("tests/data/bill_bill_bill.txt"),
+            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+        );
     }
 }
