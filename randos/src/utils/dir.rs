@@ -84,10 +84,10 @@ fn collect_directories(dir: &Utf8Path, aggr: &mut Vec<Utf8PathBuf>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::spec_helper::fixture;
     use assert_unordered::assert_eq_unordered;
     use std::fs;
     use tempfile::tempdir;
+    use test_utils::fixture;
 
     #[test]
     fn test_dirs_under() {
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_expand_dir_list_no_recurse() {
         let result = expand_dir_list(&[fixture("dir_1"), fixture("dir_2")], false);
-        let expected = Vec::from([fixture("dir_1"), fixture("dir_2")]);
+        let expected = vec![fixture("dir_1"), fixture("dir_2")];
         assert_eq_unordered!(expected, result);
     }
 }

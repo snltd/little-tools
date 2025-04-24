@@ -626,7 +626,7 @@ dependencies = [
 
 [[package]]
 name = "mmv"
-version = "1.2.0"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -819,6 +819,7 @@ dependencies = [
  "regex",
  "sha1_smol",
  "tempfile",
+ "test_utils",
  "time",
 ]
 

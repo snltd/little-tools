@@ -17,3 +17,4 @@ time = "0.3"
 
 [dev-dependencies]
 assert_unordered = "0.3"
+test_utils = { path = "../test_utils" }
