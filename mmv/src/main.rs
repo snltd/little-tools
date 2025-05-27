@@ -107,7 +107,7 @@ fn process_file(source: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
             .to_owned();
     };
 
-    if target == *source {
+    if target_name == *source_name {
         verbose!(opts, "{}: no change", source_name);
         return Ok(false);
     }
