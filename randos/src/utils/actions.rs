@@ -23,10 +23,13 @@ pub fn run(source: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &ActionOpts) -> io::R
 
 fn symlink(source: &Utf8PathBuf, target: &Utf8PathBuf, relative: bool) -> io::Result<()> {
     let source = if relative {
-        println!("doing relative link");
-        match diff_utf8_paths(source, target) {
-            Some(path) => path,
-            None => source.clone(),
+        if let Some(targets_dir) = target.parent() {
+            match diff_utf8_paths(source, targets_dir) {
+                Some(path) => path,
+                None => source.clone(),
+            }
+        } else {
+            return Err(std::io::Error::other("cannot get target parent"));
         }
     } else {
         source.clone()
