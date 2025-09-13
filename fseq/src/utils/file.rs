@@ -5,7 +5,6 @@ pub trait PathExt {
     fn is_tagged(&self, tag: &str) -> bool;
     fn fname_tokens(&self) -> anyhow::Result<Vec<String>>;
     fn get_number(&self) -> Option<i32>;
-    fn ext_as_string(&self) -> Option<String>;
 }
 
 impl PathExt for Utf8Path {
@@ -20,17 +19,9 @@ impl PathExt for Utf8Path {
     fn get_number(&self) -> Option<i32> {
         self.to_owned().get_number()
     }
-
-    fn ext_as_string(&self) -> Option<String> {
-        self.to_owned().ext_as_string()
-    }
 }
 
 impl PathExt for Utf8PathBuf {
-    fn ext_as_string(&self) -> Option<String> {
-        self.extension().map(|e| e.to_owned())
-    }
-
     // How do we decide if something is tagged? In descending order of
     // strictness:
     //
