@@ -130,12 +130,14 @@ fn ascii_filename(file_name: &str) -> String {
             ret.extend(uc.chars());
         } else if c.is_numeric() || ['.', '_'].contains(&c) {
             ret.push(c);
-            last_char = '_';
+            last_char = c;
         } else if c == '-' {
             if last_char == '_' {
                 let len = ret.len();
                 ret[len - 1] = c;
                 last_char = '_';
+            } else {
+                ret.push('-');
             }
         } else if c.is_whitespace() && !ret.is_empty() && last_char != '_' {
             ret.push('_');
@@ -217,5 +219,9 @@ mod test {
         assert_eq!("_dotfile.sfx", ascii_filename(".dotfile.sfx"));
         assert_eq!("wen_zi_hua_ke", ascii_filename("文字化け"));
         assert_eq!("UNTRANSLATABLE", ascii_filename("$(($$$$))[[$$$$]]$"));
+        assert_eq!(
+            "1990-02-02-no_known_cure.mp3",
+            ascii_filename("1990-02-02 - No Known Cure.mp3")
+        );
     }
 }
