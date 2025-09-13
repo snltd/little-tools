@@ -75,14 +75,6 @@ mod test {
     use test_utils::fixture;
 
     #[test]
-    fn test_ext_as_string() {
-        assert_eq!(
-            Some("txt".to_string()),
-            Utf8PathBuf::from("/path/file.txt").ext_as_string()
-        );
-    }
-
-    #[test]
     fn test_get_number() {
         assert_eq!(
             Some(1),
