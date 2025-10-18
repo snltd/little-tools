@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use clap::Parser;
 use common::verbose;
@@ -156,7 +156,7 @@ fn target_path(source: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Utf8PathBuf>
 
 fn rename(src: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<()> {
     if dest.exists() && !opts.clobber {
-        return Err(anyhow!("filename collision"));
+        return Err(anyhow!("filename collision [-c to clobber]"));
     }
 
     Ok(fs::rename(src, dest)?)
