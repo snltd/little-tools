@@ -3,7 +3,7 @@ for tool in \
   alsort \
   cf \
   cs \
-  common \
+  flink \
   fseq \
   mixup \
   mmv \

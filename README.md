@@ -5,6 +5,9 @@
 A bunch of little command-line tools that I find useful. Most of them are
 rewrites of shell or Ruby scripts I've had kicking around for years.
 
+Install them with `cargo install --path <name>`, or do the whole lot in one go
+with `./install.sh`.
+
 ## `align-times`
 
 Recursively makes timestamps of files in `source/` match those in `dest/`.
@@ -21,7 +24,7 @@ in `0-9`, everything else goes in `symbols`.
 
 Counts files in directories, presenting info like `wc`, so it's easy to sort.
 
-```
+```sh
 $ cf /etc /bin
         186     /etc
         942     /bin
@@ -31,9 +34,9 @@ Optionally recurses down trees, and can omit directories from the counts.
 
 ## `cs`
 
-Flattens fancy filenames in to `lowercase_ascii_with_underscores`.
+Flattens fancy filenames to `lowercase_ascii_with_underscores`.
 
-```
+```sh
 $ ls
 90°.hot  'This Is A File.TXT'
 $ cs *
@@ -42,6 +45,10 @@ This Is A File.TXT -> this_is_a_file.txt
 $ ls
 90.hot  this_is_a_file.txt
 ```
+
+## `flink`
+
+Links files as home-directory dotfiles.
 
 ## `fseq`
 
@@ -59,7 +66,7 @@ Batch renamer. Takes a find-and-replace pair, and subs `find` with `replace` in
 the names of the given files. Supports regular expressions and capture groups,
 and has a no-op mode for safe experimentation.
 
-```
+```sh
 $ ls
 file1.txt  file2.txt  file3.txt
 $ mmv -v file renamed_file *
