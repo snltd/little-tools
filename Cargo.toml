@@ -5,6 +5,7 @@ members = [
   "cf",
   "cs",
   "common",
+  "flink",
   "fseq",
   "mixup",
   "mmv",

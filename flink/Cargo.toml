@@ -1,0 +1,11 @@
+[package]
+name = "flink"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+camino = "1.2.1"
+clap = { version = "4.5.51", features = ["derive"] }
+common = { path = "../common" }
+pathdiff = { version = "0.2.3", features = ["camino"] }
