@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
-    use assert_fs::prelude::*;
+    use assert_cmd::cargo::cargo_bin_cmd;
+    use camino_tempfile_ext::prelude::*;
     use predicates::prelude::*;
 
     #[test]
     #[ignore]
     fn test_cs_command_noop() {
-        let tmp = assert_fs::TempDir::new().unwrap();
+        let tmp = Utf8TempDir::new().unwrap();
         let f1 = tmp.child("File$.sfx");
         let f2 = tmp.child("File$$.sfx");
         let f3 = tmp.child("File$$$.sfx");
@@ -16,14 +16,11 @@ mod test {
         f2.touch().unwrap();
         f3.touch().unwrap();
 
-        Command::cargo_bin("cs")
-            .unwrap()
-            .args([
-                "--noop",
-                f1.to_string_lossy().as_ref(),
-                f2.to_string_lossy().as_ref(),
-                f3.to_string_lossy().as_ref(),
-            ])
+        cargo_bin_cmd!("cs")
+            .arg("--noop")
+            .arg(f1.as_path())
+            .arg(f2.as_path())
+            .arg(f3.as_path())
             .assert()
             .success();
 
@@ -35,7 +32,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_cs_command_renumbers() {
-        let tmp = assert_fs::TempDir::new().unwrap();
+        let tmp = Utf8TempDir::new().unwrap();
         let f1 = tmp.child("File$.sfx");
         let f2 = tmp.child("File$$.sfx");
         let f3 = tmp.child("File$$$.sfx");
@@ -44,13 +41,10 @@ mod test {
         f2.touch().unwrap();
         f3.touch().unwrap();
 
-        Command::cargo_bin("cs")
-            .unwrap()
-            .args([
-                f1.to_string_lossy().as_ref(),
-                f2.to_string_lossy().as_ref(),
-                f3.to_string_lossy().as_ref(),
-            ])
+        cargo_bin_cmd!("cs")
+            .arg(f1.as_path())
+            .arg(f2.as_path())
+            .arg(f3.as_path())
             .assert()
             .stdout("")
             .success();
@@ -59,15 +53,15 @@ mod test {
         assert!(!f2.exists());
         assert!(!f3.exists());
 
-        assert!(tmp.join("file.sfx").exists());
-        assert!(tmp.join("file.001.sfx").exists());
-        assert!(tmp.join("file.002.sfx").exists());
+        assert!(tmp.path().join("file.sfx").exists());
+        assert!(tmp.path().join("file.001.sfx").exists());
+        assert!(tmp.path().join("file.002.sfx").exists());
     }
 
     #[test]
     #[ignore]
     fn test_cs_command_renumbers_verbose() {
-        let tmp = assert_fs::TempDir::new().unwrap();
+        let tmp = Utf8TempDir::new().unwrap();
         let f1 = tmp.child("File$.sfx");
         let f2 = tmp.child("File$$.sfx");
         let f3 = tmp.child("File$$$.sfx");
@@ -76,33 +70,24 @@ mod test {
         f2.touch().unwrap();
         f3.touch().unwrap();
 
-        let f1 = f1.canonicalize().unwrap();
-        let f2 = f2.canonicalize().unwrap();
-        let f3 = f3.canonicalize().unwrap();
-        let tmp = tmp.canonicalize().unwrap();
+        let f1 = f1.canonicalize_utf8().unwrap();
+        let f2 = f2.canonicalize_utf8().unwrap();
+        let f3 = f3.canonicalize_utf8().unwrap();
+        let tmp = tmp.path().canonicalize_utf8().unwrap();
 
-        Command::cargo_bin("cs")
-            .unwrap()
+        cargo_bin_cmd!("cs")
             .arg("--verbose")
             .arg(&f1)
             .arg(&f2)
             .arg(&f3)
             .assert()
             .success()
+            .stdout(predicate::str::contains(format!("{f1} -> {tmp}/file.sfx",)))
             .stdout(predicate::str::contains(format!(
-                "{} -> {}/file.sfx",
-                f1.display(),
-                tmp.display()
+                "{f2} -> {tmp}/file.001.sfx",
             )))
             .stdout(predicate::str::contains(format!(
-                "{} -> {}/file.001.sfx",
-                f2.display(),
-                tmp.display()
-            )))
-            .stdout(predicate::str::contains(format!(
-                "{} -> {}/file.002.sfx",
-                f3.display(),
-                tmp.display()
+                "{f3} -> {tmp}/file.002.sfx",
             )));
 
         assert!(!f1.exists());
@@ -117,7 +102,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_cs_command_clobbers() {
-        let tmp = assert_fs::TempDir::new().unwrap();
+        let tmp = Utf8TempDir::new().unwrap();
         let f1 = tmp.child("File$.sfx");
         let f2 = tmp.child("File$$.sfx");
         let f3 = tmp.child("File$$$.sfx");
@@ -126,14 +111,11 @@ mod test {
         f2.touch().unwrap();
         f3.touch().unwrap();
 
-        Command::cargo_bin("cs")
-            .unwrap()
-            .args([
-                "--clobber",
-                f1.to_string_lossy().as_ref(),
-                f2.to_string_lossy().as_ref(),
-                f3.to_string_lossy().as_ref(),
-            ])
+        cargo_bin_cmd!("cs")
+            .arg("--clobber")
+            .arg(f1.as_path())
+            .arg(f2.as_path())
+            .arg(f3.as_path())
             .assert()
             .success();
 
@@ -141,15 +123,15 @@ mod test {
         assert!(!f2.exists());
         assert!(!f3.exists());
 
-        assert!(tmp.join("file.sfx").exists());
-        assert!(!tmp.join("file.001.sfx").exists());
-        assert!(!tmp.join("file.002.sfx").exists());
+        assert!(tmp.path().join("file.sfx").exists());
+        assert!(!tmp.path().join("file.001.sfx").exists());
+        assert!(!tmp.path().join("file.002.sfx").exists());
     }
 
     #[test]
     #[ignore]
     fn test_cs_command_nonumber() {
-        let tmp = assert_fs::TempDir::new().unwrap();
+        let tmp = Utf8TempDir::new().unwrap();
         let f1 = tmp.child("File$.sfx");
         let f2 = tmp.child("File$$.sfx");
         let f3 = tmp.child("File$$$.sfx");
@@ -158,28 +140,24 @@ mod test {
         f2.touch().unwrap();
         f3.touch().unwrap();
 
-        Command::cargo_bin("cs")
-            .unwrap()
-            .args([
-                "--nonumber",
-                f1.to_string_lossy().as_ref(),
-                f2.to_string_lossy().as_ref(),
-                f3.to_string_lossy().as_ref(),
-            ])
+        cargo_bin_cmd!("cs")
+            .arg("--nonumber")
+            .arg(f1.as_path())
+            .arg(f2.as_path())
+            .arg(f3.as_path())
             .assert()
             .failure();
 
         assert!(!f1.exists());
         assert!(f2.exists());
         assert!(f3.exists());
-        assert!(tmp.join("file.sfx").exists());
+        assert!(tmp.path().join("file.sfx").exists());
     }
 
     #[test]
     #[ignore]
     fn test_cs_no_args() {
-        Command::cargo_bin("cs")
-            .unwrap()
+        cargo_bin_cmd!("cs")
             .assert()
             .failure()
             .stderr(predicate::str::contains(
@@ -190,8 +168,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_cs_missing_file() {
-        Command::cargo_bin("cs")
-            .unwrap()
+        cargo_bin_cmd!("cs")
             .arg("/no/such/file")
             .assert()
             .failure()

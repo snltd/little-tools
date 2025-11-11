@@ -29,24 +29,23 @@ pub fn is_candidate(file: &Utf8Path, opts: &FilterOpts) -> bool {
         }
     }
 
-    if let Some(rx) = &opts.regex {
-        if let Some(file_name) = file.file_name() {
-            if !rx.is_match(file_name) {
-                return false;
-            }
-        }
+    if let Some(rx) = &opts.regex
+        && let Some(file_name) = file.file_name()
+        && !rx.is_match(file_name)
+    {
+        return false;
     }
 
-    if let Some(timestamp) = &opts.older {
-        if file_mtime(file) > *timestamp {
-            return false;
-        }
+    if let Some(timestamp) = &opts.older
+        && file_mtime(file) > *timestamp
+    {
+        return false;
     }
 
-    if let Some(timestamp) = &opts.newer {
-        if file_mtime(file) < *timestamp {
-            return false;
-        }
+    if let Some(timestamp) = &opts.newer
+        && file_mtime(file) < *timestamp
+    {
+        return false;
     }
 
     true
@@ -55,7 +54,7 @@ pub fn is_candidate(file: &Utf8Path, opts: &FilterOpts) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use filetime::{set_file_times, FileTime};
+    use filetime::{FileTime, set_file_times};
     use regex::Regex;
     use test_utils::fixture;
 

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
     use test_utils::fixture_dir;
 
@@ -20,8 +20,7 @@ mod test {
         assert!(!after_1.exists());
         assert!(!after_2.exists());
 
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .arg("--verbose")
             .arg("before")
             .arg("after")
@@ -61,8 +60,7 @@ mod test {
         assert!(after_1.exists());
         assert!(after_2.exists());
 
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .arg("--verbose")
             .arg("before")
             .arg("after")
@@ -101,8 +99,7 @@ mod test {
         assert!(after_1.exists());
         assert!(after_2.exists());
 
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .arg("--clobber")
             .arg("before")
             .arg("after")
@@ -120,16 +117,14 @@ mod test {
     #[test]
     #[ignore]
     fn test_mmv_not_enough_args() {
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .assert()
             .failure()
             .stderr(predicate::str::contains(
                 "the following required arguments were not provided",
             ));
 
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .arg("find")
             .assert()
             .failure()
@@ -137,8 +132,7 @@ mod test {
                 "the following required arguments were not provided",
             ));
 
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .arg("find")
             .arg("replace")
             .assert()
@@ -151,8 +145,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_mmv_missing_file() {
-        Command::cargo_bin("mmv")
-            .unwrap()
+        cargo_bin_cmd!("mmv")
             .arg("find")
             .arg("replace")
             .arg("/no/such/file")

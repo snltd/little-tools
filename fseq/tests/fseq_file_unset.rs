@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
     use test_utils::fixture_dir;
 
@@ -12,8 +12,7 @@ mod test {
         let new_untagged_file = "fseq.test.0002.txt";
         let (_tmp, test_dir) = fixture_dir("fseq.test", vec![tagged_file, untagged_file]);
 
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("--tag=TAG")
             .arg("file")
             .arg("unset")
@@ -25,8 +24,7 @@ mod test {
         assert!(test_dir.join(untagged_file).exists());
         assert!(!test_dir.join(new_untagged_file).exists());
 
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("--tag=TAG")
             .arg("file")
             .arg("unset")
@@ -42,8 +40,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_fseq_file_unset_no_args() {
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("file")
             .arg("unset")
             .assert()
@@ -56,8 +53,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_fseq_file_unset_missing_file() {
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("file")
             .arg("unset")
             .arg("/no/such/file")

@@ -1,12 +1,11 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
 
     #[ignore]
     #[test]
     fn test_cf_missing_directory() {
-        Command::cargo_bin("cf")
-            .unwrap()
+        cargo_bin_cmd!("cf")
             .arg("/no/such/file")
             .assert()
             .failure()
@@ -16,8 +15,7 @@ mod test {
     #[ignore]
     #[test]
     fn test_cf_not_a_directory() {
-        Command::cargo_bin("cf")
-            .unwrap()
+        cargo_bin_cmd!("cf")
             .arg("./Cargo.toml")
             .assert()
             .failure()
@@ -27,8 +25,7 @@ mod test {
     #[ignore]
     #[test]
     fn test_cf() {
-        Command::cargo_bin("cf")
-            .unwrap()
+        cargo_bin_cmd!("cf")
             .arg("src")
             .assert()
             .success()

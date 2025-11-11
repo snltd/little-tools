@@ -99,54 +99,59 @@ fn group_from_initial(initial: char) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use assert_fs::prelude::*;
+    use camino_tempfile_ext::prelude::*;
 
     #[test]
     fn test_process() {
-        let temp = assert_fs::TempDir::new().unwrap();
+        let temp = Utf8TempDir::new().unwrap();
         temp.child("a_file.txt").touch().unwrap();
         temp.child("abc").create_dir_all().unwrap();
-        let file_under_test = Utf8PathBuf::from_path_buf(temp.join("a_file.txt")).unwrap();
+        let file_under_test = temp.path().join("a_file.txt");
 
         assert!(file_under_test.exists());
 
-        assert!(process(
-            &file_under_test,
-            &Cli {
-                root: Utf8PathBuf::from_path_buf(temp.to_path_buf()).unwrap(),
-                verbose: false,
-                group: true,
-                files: vec![],
-                noop: false,
-            },
-        )
-        .unwrap());
+        assert!(
+            process(
+                &file_under_test,
+                &Cli {
+                    root: temp.path().to_path_buf(),
+                    verbose: false,
+                    group: true,
+                    files: vec![],
+                    noop: false,
+                },
+            )
+            .unwrap()
+        );
 
         assert!(!file_under_test.exists());
-        assert!(temp.join("abc").join("a_file.txt").exists());
+        assert!(temp.path().join("abc").join("a_file.txt").exists());
     }
 
     #[test]
     fn test_process_ignores_target() {
-        let temp = assert_fs::TempDir::new().unwrap();
+        let temp = Utf8TempDir::new().unwrap();
         temp.child("a_file.txt").touch().unwrap();
         temp.child("abc").create_dir_all().unwrap();
-        let file_under_test = Utf8PathBuf::from_path_buf(temp.join("abc")).unwrap();
+        let file_under_test = temp.path().join("abc");
 
         assert!(file_under_test.exists());
 
-        assert!(!process(
-            &file_under_test,
-            &Cli {
-                root: Utf8PathBuf::from_path_buf(temp.to_path_buf()).unwrap(),
-                verbose: false,
-                group: true,
-                files: vec![],
-                noop: false,
-            },
-        )
-        .unwrap());
+        assert!(
+            !process(
+                &file_under_test,
+                &Cli {
+                    root: temp.path().to_path_buf(),
+                    verbose: false,
+                    group: true,
+                    files: vec![],
+                    noop: false,
+                },
+            )
+            .unwrap()
+        );
     }
+
     #[test]
     fn test_target_from_initial() {
         assert_eq!(
