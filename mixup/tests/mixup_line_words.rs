@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test {
+    use assert_cmd::cargo::cargo_bin_cmd;
     use std::collections::HashSet;
     use test_utils::fixture_as_string;
 
@@ -18,15 +19,11 @@ mod test {
         let mut found_all_combos = false;
 
         loop {
-            let mut cmd = assert_cmd::Command::cargo_bin("mixup").unwrap();
-
-            cmd.args([
-                "line-words",
-                "-i",
-                &fixture_as_string("line_words/f1"),
-                &fixture_as_string("line_words/f2"),
-            ]);
-
+            let mut cmd = cargo_bin_cmd!("mixup");
+            cmd.arg("line-words");
+            cmd.arg("-i");
+            cmd.arg(fixture_as_string("line_words/f1"));
+            cmd.arg(fixture_as_string("line_words/f2"));
             cmd.assert().success();
 
             let output = String::from_utf8(cmd.output().unwrap().stdout).unwrap();
@@ -66,14 +63,10 @@ mod test {
         let mut found_all_combos = false;
 
         loop {
-            let mut cmd = assert_cmd::Command::cargo_bin("mixup").unwrap();
-
-            cmd.args([
-                "line-words",
-                &fixture_as_string("line_words/f1"),
-                &fixture_as_string("line_words/f2"),
-            ]);
-
+            let mut cmd = cargo_bin_cmd!("mixup");
+            cmd.arg("line-words");
+            cmd.arg(fixture_as_string("line_words/f1"));
+            cmd.arg(fixture_as_string("line_words/f2"));
             cmd.assert().success();
 
             let output = String::from_utf8(cmd.output().unwrap().stdout).unwrap();
@@ -99,8 +92,7 @@ mod test {
 
     #[test]
     fn test_line_words_error_on_missing_file() {
-        assert_cmd::Command::cargo_bin("mixup")
-            .unwrap()
+        cargo_bin_cmd!("mixup")
             .args(["line-words", "/file/does/not/exist"])
             .assert()
             .failure()

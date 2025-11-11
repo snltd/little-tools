@@ -33,12 +33,12 @@ fn consolidate_actions_for_base(files: FilesInDirSubtype) -> RenameActions {
     for (i, hole) in hole_list.iter().enumerate().take(min_len) {
         let index = numbered_len - 1 - i;
 
-        if let Some(file_num) = files.numbered_files[index].get_number() {
-            if file_num > *hole {
-                let source = &files.numbered_files[index];
-                let target = files.fname_from_stem(source, *hole);
-                ret.push((source.clone(), target));
-            }
+        if let Some(file_num) = files.numbered_files[index].get_number()
+            && file_num > *hole
+        {
+            let source = &files.numbered_files[index];
+            let target = files.fname_from_stem(source, *hole);
+            ret.push((source.clone(), target));
         }
     }
 

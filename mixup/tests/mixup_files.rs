@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod test {
+    use assert_cmd::cargo::cargo_bin_cmd;
     use std::collections::HashSet;
     use test_utils::fixture_as_string;
 
     #[test]
     fn test_single_file_is_like_cat() {
-        assert_cmd::Command::cargo_bin("mixup")
-            .unwrap()
+        cargo_bin_cmd!("mixup")
             .args(["file", &fixture_as_string("files/f1")])
             .assert()
             .success()
@@ -29,14 +29,12 @@ mod test {
         let mut found_all_combos = false;
 
         loop {
-            let mut cmd = assert_cmd::Command::cargo_bin("mixup").unwrap();
+            let mut cmd = cargo_bin_cmd!("mixup");
 
-            cmd.args([
-                "file",
-                &fixture_as_string("files/f1"),
-                &fixture_as_string("files/f2"),
-                &fixture_as_string("files/f3"),
-            ]);
+            cmd.arg("file");
+            cmd.arg(fixture_as_string("files/f1"));
+            cmd.arg(fixture_as_string("files/f2"));
+            cmd.arg(fixture_as_string("files/f3"));
 
             cmd.assert().success();
 
@@ -63,8 +61,7 @@ mod test {
 
     #[test]
     fn test_warning_of_interleave() {
-        assert_cmd::Command::cargo_bin("mixup")
-            .unwrap()
+        cargo_bin_cmd!("mixup")
             .args(["file", "--interleave", &fixture_as_string("files/f1")])
             .assert()
             .success()
@@ -73,8 +70,7 @@ mod test {
 
     #[test]
     fn test_error_on_missing_file() {
-        assert_cmd::Command::cargo_bin("mixup")
-            .unwrap()
+        cargo_bin_cmd!("mixup")
             .args(["file", "/file/does/not/exist"])
             .assert()
             .failure()

@@ -123,13 +123,13 @@ fn main() {
 
     while let Some(index) = index_list.pop() {
         let candidate = &candidate_pool[index];
-        if filter::is_candidate(candidate, &filter_opts) {
-            if let Some(target_basename) = namer::name_from(candidate, seq_no, &cli.scheme) {
-                sources.push((candidate, dest_dir.join(target_basename)));
-                seq_no += 1;
-                if sources.len() == required_sources {
-                    break;
-                }
+        if filter::is_candidate(candidate, &filter_opts)
+            && let Some(target_basename) = namer::name_from(candidate, seq_no, &cli.scheme)
+        {
+            sources.push((candidate, dest_dir.join(target_basename)));
+            seq_no += 1;
+            if sources.len() == required_sources {
+                break;
             }
         }
     }

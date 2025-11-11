@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
     use test_utils::fixture_dir;
 
@@ -13,8 +13,7 @@ mod test {
         let (_tmp, test_dir) =
             fixture_dir("fseq.test", vec![original_file, "fseq.test.TAG.0001.txt"]);
 
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("--tag=TAG")
             .arg("file")
             .arg("flip")
@@ -25,8 +24,7 @@ mod test {
         assert!(test_dir.join(expected_file).exists());
         assert!(!test_dir.join(original_file).exists());
 
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("--tag=TAG")
             .arg("file")
             .arg("flip")
@@ -41,8 +39,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_fseq_file_flip_no_args() {
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("file")
             .arg("flip")
             .assert()
@@ -55,8 +52,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_fseq_file_flip_missing_file() {
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("file")
             .arg("flip")
             .arg("/no/such/file")

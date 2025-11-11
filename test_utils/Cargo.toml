@@ -7,6 +7,6 @@ edition = "2024"
 path = "src/lib.rs"
 
 [dependencies]
-assert_fs = "1"  
 camino = "1.1.9"
+camino-tempfile-ext = "0.3.3"
 predicates = "3"

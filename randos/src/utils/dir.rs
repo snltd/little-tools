@@ -85,25 +85,25 @@ fn collect_directories(dir: &Utf8Path, aggr: &mut Vec<Utf8PathBuf>) {
 mod tests {
     use super::*;
     use assert_unordered::assert_eq_unordered;
+    use camino_tempfile_ext::prelude::*;
     use std::fs;
-    use tempfile::tempdir;
     use test_utils::fixture;
 
     #[test]
     fn test_dirs_under() {
-        let temp_dir = Utf8PathBuf::from_path_buf(tempdir().unwrap().into_path()).unwrap();
-        let subdir1 = temp_dir.join("subdir1");
-        let subdir2 = temp_dir.join("subdir1/subdir2");
-        let subdir3 = temp_dir.join("subdir3");
+        let temp_dir = Utf8TempDir::new().unwrap();
+        let subdir1 = temp_dir.path().join("subdir1");
+        let subdir2 = temp_dir.path().join("subdir1/subdir2");
+        let subdir3 = temp_dir.path().join("subdir3");
 
         fs::create_dir_all(&subdir1).unwrap();
         fs::create_dir_all(&subdir2).unwrap();
         fs::create_dir_all(&subdir3).unwrap();
 
-        let dirs = vec![temp_dir.clone(), subdir3.clone()];
+        let dirs = vec![temp_dir.path().to_owned(), subdir3.as_path().to_owned()];
         let all_dirs = dirs_under(&dirs);
 
-        let expected_dirs: Vec<Utf8PathBuf> = vec![temp_dir, subdir1, subdir2, subdir3]
+        let expected_dirs = vec![temp_dir.path().to_path_buf(), subdir1, subdir2, subdir3]
             .into_iter()
             .collect();
 

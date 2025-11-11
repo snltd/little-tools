@@ -9,4 +9,4 @@ camino = "1.1.9"
 clap = { version = "4.5", features = ["derive"] }
 
 [dev-dependencies]
-assert_fs = "1.1.2"
+camino-tempfile-ext = "0.3.3"

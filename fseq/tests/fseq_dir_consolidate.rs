@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use assert_cmd::Command;
+    use assert_cmd::cargo::cargo_bin_cmd;
     use predicates::prelude::*;
     use test_utils::fixture_dir;
 
@@ -27,8 +27,7 @@ mod test {
 
         let (_tmp, test_dir) = fixture_dir("fseq.test", original_names);
 
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("--tag=TAG")
             .arg("dir")
             .arg("consolidate")
@@ -66,8 +65,7 @@ mod test {
 
         let (_tmp, test_dir) = fixture_dir("fseq_test", original_names);
 
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("--tag=TAG")
             .arg("dir")
             .arg("consolidate")
@@ -85,8 +83,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_fseq_dir_consolidate_no_args() {
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("dir")
             .arg("consolidate")
             .assert()
@@ -99,8 +96,7 @@ mod test {
     #[test]
     #[ignore]
     fn test_fseq_dir_consolidate_missing_file() {
-        Command::cargo_bin("fseq")
-            .unwrap()
+        cargo_bin_cmd!("fseq")
             .arg("dir")
             .arg("consolidate")
             .arg("/no/such/dir")
