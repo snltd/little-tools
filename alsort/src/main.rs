@@ -1,19 +1,26 @@
-use anyhow::anyhow;
-use camino::Utf8PathBuf;
+use anyhow::Context;
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
-use std::fs;
+use std::{fs, process};
 
 #[derive(Parser)]
-#[clap(version, about = "Sort files into directories based on their first letter", long_about = None)]
+#[clap(version,
+    about = "Sort files into directories based on their first letter",
+    long_about = None)]
 struct Cli {
+    /// Root target directory
     #[clap(short = 'R', long = "root", default_value = ".")]
     root: Utf8PathBuf,
+    /// Say what would happen without actually doing it
     #[clap(short, long)]
     noop: bool,
+    /// Be verbose
     #[clap(short, long)]
     verbose: bool,
+    /// Group into abc, def, ... rather than a, b, d, e, f, ...
     #[clap(short, long)]
     group: bool,
+    /// Files to process
     #[clap(required = true)]
     files: Vec<Utf8PathBuf>,
 }
@@ -24,31 +31,32 @@ fn main() {
 
     for f in &cli.files {
         if let Err(e) = process(f, &cli) {
-            println!("ERROR: failed to process #{}: #{}", &f, e);
+            eprintln!("ERROR: failed to process {}: {}", &f, e);
             errs = true;
         }
     }
 
     if errs {
-        std::process::exit(1);
+        process::exit(1);
     }
 }
 
-fn process(file: &Utf8PathBuf, cli: &Cli) -> anyhow::Result<bool> {
+fn process(file: &Utf8Path, cli: &Cli) -> anyhow::Result<bool> {
     let f = file.canonicalize_utf8()?;
-    let basename = match f.file_name() {
-        Some(fname) => fname,
-        None => return Err(anyhow!("failed to get basename")),
-    };
-
+    let basename = f.file_name().context("failed to get basename")?;
     let raw_initial = basename.to_lowercase().chars().next();
+    let initial = raw_initial.context("failed to get initial")?;
+    let target_dir = target_from_initial(initial, &cli.root, cli.group);
 
-    let initial = match raw_initial {
-        Some(letter) => letter,
-        None => return Err(anyhow!("failed to get initial")),
-    };
+    if !target_dir.exists() {
+        if cli.verbose {
+            println!("creating target {target_dir}");
+        }
 
-    let target_dir = target_from_initial(initial, &cli.root, cli.group).canonicalize_utf8()?;
+        if !cli.noop {
+            fs::create_dir_all(&target_dir)?;
+        }
+    }
 
     if target_dir == f {
         return Ok(false);
@@ -60,10 +68,6 @@ fn process(file: &Utf8PathBuf, cli: &Cli) -> anyhow::Result<bool> {
 
     if cli.noop {
         return Ok(true);
-    }
-
-    if !target_dir.exists() {
-        fs::create_dir(&target_dir)?;
     }
 
     let target_file = target_dir.join(basename);
