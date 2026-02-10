@@ -137,7 +137,7 @@ mod test {
         let temp = Utf8TempDir::new().unwrap();
         temp.child("a_file.txt").touch().unwrap();
         temp.child("abc").create_dir_all().unwrap();
-        let file_under_test = temp.path().canonicalize_utf8().unwrap().join("abc");
+        let file_under_test = temp.path().join("abc").canonicalize_utf8().unwrap();
 
         assert!(file_under_test.exists());
 
@@ -145,7 +145,7 @@ mod test {
             !process(
                 &file_under_test,
                 &Cli {
-                    root: temp.path().canonicalize_utf8().unwrap().to_path_buf(),
+                    root: temp.path().to_path_buf().canonicalize_utf8().unwrap(),
                     verbose: false,
                     group: true,
                     files: vec![],
