@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
+use rand::RngExt;
 use rand::distr::Alphanumeric;
-use rand::Rng;
 
 pub fn name_from(path: &Utf8PathBuf, seq_no: usize, scheme: &Option<String>) -> Option<String> {
     if let Some(basename) = path.file_name() {

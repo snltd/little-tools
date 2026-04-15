@@ -9,7 +9,7 @@ assert_cmd = "2.0.16"
 camino = "1.1.9"
 clap = { version = "4.3", features = ["derive"] }
 common = { path = "../common" }
-rand = "0.9.0"
+rand = "0.10.1"
 
 [dev-dependencies]
 camino-tempfile-ext = "0.3.3"

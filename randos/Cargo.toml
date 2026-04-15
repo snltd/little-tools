@@ -9,7 +9,7 @@ camino = "1.1"
 clap = { version = "4.5", features = ["derive"] }
 filetime = "0.2"
 pathdiff = { version = "0.2.3", features = ["camino"] }
-rand = "0.9"
+rand = "0.10.1"
 regex = "1"
 sha1_smol = "1.0"
 tempfile = "3.15"
