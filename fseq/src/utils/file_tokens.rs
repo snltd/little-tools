@@ -1,6 +1,6 @@
 use crate::utils::dir;
 use crate::utils::types::FileTokens;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use camino::{Utf8Path, Utf8PathBuf};
 use std::fs;
 
@@ -54,8 +54,8 @@ impl FileTokens {
 #[cfg(test)]
 mod test {
     use super::*;
+    use snltest::fixture;
     use std::time::SystemTime;
-    use test_utils::fixture;
 
     // Custom PartialEq for the tests. We don't want to compare mtime, because on
     // a git checkout the real one could be anything.
@@ -74,7 +74,7 @@ mod test {
     fn test_file_tokens() {
         assert_eq!(
             FileTokens {
-                dir: fixture("some.dir"),
+                dir: fixture!("some.dir"),
                 num: Some(2),
                 stem: "some.dir".to_string(),
                 suffix: "jpg".to_string(),
@@ -82,12 +82,12 @@ mod test {
                 tag: "xxx".to_string(),
                 mtime: SystemTime::now(), // we don't compare this
             },
-            FileTokens::new(&fixture("some.dir/some.dir.0002.jpg"), "xxx").unwrap(),
+            FileTokens::new(&fixture!("some.dir/some.dir.0002.jpg"), "xxx").unwrap(),
         );
 
         assert_eq!(
             FileTokens {
-                dir: fixture("some.dir"),
+                dir: fixture!("some.dir"),
                 num: Some(2),
                 stem: "some.dir".to_string(),
                 suffix: "jpg".to_string(),
@@ -95,12 +95,12 @@ mod test {
                 tag: "tag".to_string(),
                 mtime: SystemTime::now(),
             },
-            FileTokens::new(&fixture("some.dir/some.dir.tag.0002.jpg"), "tag").unwrap(),
+            FileTokens::new(&fixture!("some.dir/some.dir.tag.0002.jpg"), "tag").unwrap(),
         );
 
         assert_eq!(
             FileTokens {
-                dir: fixture("nodot"),
+                dir: fixture!("nodot"),
                 num: Some(1234),
                 stem: "nodot".to_string(),
                 suffix: "sfx".to_string(),
@@ -108,9 +108,9 @@ mod test {
                 tag: "xxx".to_string(),
                 mtime: SystemTime::now(),
             },
-            FileTokens::new(&fixture("nodot/nodot.1234.sfx"), "xxx").unwrap(),
+            FileTokens::new(&fixture!("nodot/nodot.1234.sfx"), "xxx").unwrap(),
         );
 
-        assert!(FileTokens::new(&fixture("some.dir/random_name.jpg"), "tag").is_err());
+        assert!(FileTokens::new(&fixture!("some.dir/random_name.jpg"), "tag").is_err());
     }
 }

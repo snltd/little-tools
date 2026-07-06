@@ -1,13 +1,14 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::cargo::cargo_bin_cmd;
+    use snltest::fixture;
     use std::collections::HashSet;
-    use test_utils::fixture_as_string;
 
     #[test]
     fn test_single_file_is_like_cat() {
         cargo_bin_cmd!("mixup")
-            .args(["file", &fixture_as_string("files/f1")])
+            .arg("file")
+            .arg(fixture!("files/f1"))
             .assert()
             .success()
             .stdout("f1\n")
@@ -32,9 +33,9 @@ mod test {
             let mut cmd = cargo_bin_cmd!("mixup");
 
             cmd.arg("file");
-            cmd.arg(fixture_as_string("files/f1"));
-            cmd.arg(fixture_as_string("files/f2"));
-            cmd.arg(fixture_as_string("files/f3"));
+            cmd.arg(fixture!("files/f1"));
+            cmd.arg(fixture!("files/f2"));
+            cmd.arg(fixture!("files/f3"));
 
             cmd.assert().success();
 
@@ -62,7 +63,9 @@ mod test {
     #[test]
     fn test_warning_of_interleave() {
         cargo_bin_cmd!("mixup")
-            .args(["file", "--interleave", &fixture_as_string("files/f1")])
+            .arg("file")
+            .arg("--interleave")
+            .arg(fixture!("files/f1"))
             .assert()
             .success()
             .stderr("NOTICE: files always interleave\n");

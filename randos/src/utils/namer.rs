@@ -59,34 +59,34 @@ fn expand(path: &Utf8PathBuf) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use test_utils::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_name_from() {
         assert_eq!(
             "file_1_3.png".to_string(),
-            name_from(&fixture("dir_1/file_1_3.png"), 1, &Some("plain".into())).unwrap()
+            name_from(&fixture!("dir_1/file_1_3.png"), 1, &Some("plain".into())).unwrap()
         );
 
-        let rand = name_from(&fixture("dir_1/file_1_3.png"), 1, &Some("random".into())).unwrap();
+        let rand = name_from(&fixture!("dir_1/file_1_3.png"), 1, &Some("random".into())).unwrap();
         assert!(rand.ends_with(".png"));
         assert_eq!(36, rand.len());
 
-        let hashed = name_from(&fixture("dir_1/file_1_3.png"), 1, &Some("hash".into())).unwrap();
+        let hashed = name_from(&fixture!("dir_1/file_1_3.png"), 1, &Some("hash".into())).unwrap();
         assert!(hashed.ends_with(".png"));
         assert_eq!(44, hashed.len());
 
         assert_eq!(
             "00000015.png".to_string(),
             name_from(
-                &fixture("dir_1/file_1_3.png"),
+                &fixture!("dir_1/file_1_3.png"),
                 15,
                 &Some("sequential".into())
             )
             .unwrap()
         );
 
-        let expand = name_from(&fixture("dir_1/file_1_3.png"), 1, &Some("expand".into())).unwrap();
+        let expand = name_from(&fixture!("dir_1/file_1_3.png"), 1, &Some("expand".into())).unwrap();
         assert!(expand.ends_with(".png"));
         assert!(!expand.starts_with('-'));
         assert!(!expand.contains('/'));

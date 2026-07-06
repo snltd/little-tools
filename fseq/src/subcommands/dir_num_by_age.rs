@@ -97,36 +97,36 @@ fn make_move_list(mut input: RenameActions) -> RenameActionsResult {
 #[cfg(test)]
 mod test {
     use super::*;
+    use snltest::fixture;
     use std::time::{Duration, SystemTime};
-    use test_utils::fixture;
 
     #[test]
     fn test_find_next_link() {
         let inputs = &vec![
             (
-                fixture("age.dir/age.dir.0002.jpg"),
-                fixture("age.dir/age.dir.0001.jpg"),
+                fixture!("age.dir/age.dir.0002.jpg"),
+                fixture!("age.dir/age.dir.0001.jpg"),
             ),
             (
-                fixture("age.dir/age.dir.0003.jpg"),
-                fixture("age.dir/age.dir.0004.jpg"),
+                fixture!("age.dir/age.dir.0003.jpg"),
+                fixture!("age.dir/age.dir.0004.jpg"),
             ),
         ];
 
         assert_eq!(
             None,
-            find_next_link(inputs, &fixture("age.dir/age.dir.1234.jpg"))
+            find_next_link(inputs, &fixture!("age.dir/age.dir.1234.jpg"))
         );
 
         assert_eq!(
             Some((
                 0,
                 (
-                    fixture("age.dir/age.dir.0002.jpg"),
-                    fixture("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
                 )
             )),
-            find_next_link(inputs, &fixture("age.dir/age.dir.0002.jpg"))
+            find_next_link(inputs, &fixture!("age.dir/age.dir.0002.jpg"))
         );
     }
 
@@ -139,12 +139,12 @@ mod test {
         // One move, to an empty slot.
         assert_eq!(
             vec![(
-                fixture("age.dir/age.dir.0004.jpg"),
-                fixture("age.dir/age.dir.0003.jpg"),
+                fixture!("age.dir/age.dir.0004.jpg"),
+                fixture!("age.dir/age.dir.0003.jpg"),
             )],
             make_move_list(vec![(
-                fixture("age.dir/age.dir.0004.jpg"),
-                fixture("age.dir/age.dir.0003.jpg"),
+                fixture!("age.dir/age.dir.0004.jpg"),
+                fixture!("age.dir/age.dir.0003.jpg"),
             )])
             .unwrap()
         );
@@ -153,26 +153,26 @@ mod test {
         assert_eq!(
             vec![
                 (
-                    fixture("age.dir/age.dir.0003.jpg"),
-                    fixture("age.dir/_age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/_age.dir.0002.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0002.jpg"),
-                    fixture("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
                 ),
                 (
-                    fixture("age.dir/_age.dir.0002.jpg"),
-                    fixture("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/_age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
                 ),
             ],
             make_move_list(vec![
                 (
-                    fixture("age.dir/age.dir.0003.jpg"),
-                    fixture("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0002.jpg"),
-                    fixture("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
                 ),
             ])
             .unwrap()
@@ -182,46 +182,46 @@ mod test {
         assert_eq!(
             vec![
                 (
-                    fixture("age.dir/age.dir.0001.jpg"),
-                    fixture("age.dir/_age.dir.0004.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/_age.dir.0004.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0002.jpg"),
-                    fixture("age.dir/_age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/_age.dir.0003.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0003.jpg"),
-                    fixture("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0004.jpg"),
-                    fixture("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/age.dir.0004.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
                 ),
                 (
-                    fixture("age.dir/_age.dir.0004.jpg"),
-                    fixture("age.dir/age.dir.0004.jpg"),
+                    fixture!("age.dir/_age.dir.0004.jpg"),
+                    fixture!("age.dir/age.dir.0004.jpg"),
                 ),
                 (
-                    fixture("age.dir/_age.dir.0003.jpg"),
-                    fixture("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/_age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
                 )
             ],
             make_move_list(vec![
                 (
-                    fixture("age.dir/age.dir.0001.jpg"),
-                    fixture("age.dir/age.dir.0004.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/age.dir.0004.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0002.jpg"),
-                    fixture("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0003.jpg"),
-                    fixture("age.dir/age.dir.0002.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0002.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0004.jpg"),
-                    fixture("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/age.dir.0004.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
                 ),
             ])
             .unwrap()
@@ -231,44 +231,46 @@ mod test {
     #[test]
     fn test_find_movers() {
         let now = SystemTime::now();
-        assert!(find_movers(&[
-            (file_token_with_time(
-                &fixture("age.dir/age.dir.0001.jpg"),
-                now - Duration::new(3, 0)
-            )),
-            (file_token_with_time(
-                &fixture("age.dir/age.dir.0002.jpg"),
-                now - Duration::new(2, 0)
-            )),
-            (file_token_with_time(
-                &fixture("age.dir/age.dir.0003.jpg"),
-                now - Duration::new(1, 0)
-            )),
-        ])
-        .is_empty(),);
+        assert!(
+            find_movers(&[
+                (file_token_with_time(
+                    &fixture!("age.dir/age.dir.0001.jpg"),
+                    now - Duration::new(3, 0)
+                )),
+                (file_token_with_time(
+                    &fixture!("age.dir/age.dir.0002.jpg"),
+                    now - Duration::new(2, 0)
+                )),
+                (file_token_with_time(
+                    &fixture!("age.dir/age.dir.0003.jpg"),
+                    now - Duration::new(1, 0)
+                )),
+            ])
+            .is_empty(),
+        );
 
         assert_eq!(
             vec![
                 (
-                    fixture("age.dir/age.dir.0003.jpg"),
-                    fixture("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
                 ),
                 (
-                    fixture("age.dir/age.dir.0001.jpg"),
-                    fixture("age.dir/age.dir.0003.jpg"),
+                    fixture!("age.dir/age.dir.0001.jpg"),
+                    fixture!("age.dir/age.dir.0003.jpg"),
                 ),
             ],
             find_movers(&[
                 (file_token_with_time(
-                    &fixture("age.dir/age.dir.0003.jpg"),
+                    &fixture!("age.dir/age.dir.0003.jpg"),
                     now - Duration::new(3, 0)
                 )),
                 (file_token_with_time(
-                    &fixture("age.dir/age.dir.0002.jpg"),
+                    &fixture!("age.dir/age.dir.0002.jpg"),
                     now - Duration::new(2, 0)
                 )),
                 (file_token_with_time(
-                    &fixture("age.dir/age.dir.0001.jpg"),
+                    &fixture!("age.dir/age.dir.0001.jpg"),
                     now - Duration::new(1, 0)
                 )),
             ]),

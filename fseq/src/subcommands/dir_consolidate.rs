@@ -56,32 +56,32 @@ fn consolidate_actions_for_base(files: FilesInDirSubtype) -> RenameActions {
 #[cfg(test)]
 mod test {
     use super::*;
-    use test_utils::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_consolidate_actions() {
-        let needs_work = actions(&fixture("some.dir"), "tag");
+        let needs_work = actions(&fixture!("some.dir"), "tag");
 
         let expected: RenameActions = vec![
             (
-                fixture("some.dir/some.dir.0005.jpg"),
-                fixture("some.dir/some.dir.0004.jpg"),
+                fixture!("some.dir/some.dir.0005.jpg"),
+                fixture!("some.dir/some.dir.0004.jpg"),
             ),
             (
-                fixture("some.dir/other_random_name.jpg"),
-                fixture("some.dir/some.dir.0005.jpg"),
+                fixture!("some.dir/other_random_name.jpg"),
+                fixture!("some.dir/some.dir.0005.jpg"),
             ),
             (
-                fixture("some.dir/random_name.jpg"),
-                fixture("some.dir/some.dir.0006.jpg"),
+                fixture!("some.dir/random_name.jpg"),
+                fixture!("some.dir/some.dir.0006.jpg"),
             ),
             (
-                fixture("some.dir/some.dir.tag.1234.jpg"),
-                fixture("some.dir/some.dir.tag.0001.jpg"),
+                fixture!("some.dir/some.dir.tag.1234.jpg"),
+                fixture!("some.dir/some.dir.tag.0001.jpg"),
             ),
             (
-                fixture("some.dir/random_name.tag.1234.jpg"),
-                fixture("some.dir/some.dir.tag.0005.jpg"),
+                fixture!("some.dir/random_name.tag.1234.jpg"),
+                fixture!("some.dir/some.dir.tag.0005.jpg"),
             ),
         ];
 
@@ -90,7 +90,7 @@ mod test {
         let expected_empty: RenameActions = Vec::new();
         assert_eq!(
             expected_empty,
-            actions(&fixture("sorted.dir"), "xx").unwrap()
+            actions(&fixture!("sorted.dir"), "xx").unwrap()
         );
     }
 }

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test {
     use assert_cmd::cargo::cargo_bin_cmd;
+    use snltest::fixture;
     use std::collections::HashSet;
-    use test_utils::fixture_as_string;
 
     #[test]
     fn test_lines_with_interleave_get_mixed_up() {
@@ -21,8 +21,8 @@ mod test {
             let mut cmd = cargo_bin_cmd!("mixup");
             cmd.arg("lines");
             cmd.arg("-i");
-            cmd.arg(fixture_as_string("lines/f1"));
-            cmd.arg(fixture_as_string("lines/f2"));
+            cmd.arg(fixture!("lines/f1"));
+            cmd.arg(fixture!("lines/f2"));
             cmd.assert().success();
 
             let output = String::from_utf8(cmd.output().unwrap().stdout).unwrap();
@@ -61,8 +61,8 @@ mod test {
         loop {
             let mut cmd = cargo_bin_cmd!("mixup");
             cmd.arg("lines");
-            cmd.arg(fixture_as_string("lines/f1"));
-            cmd.arg(fixture_as_string("lines/f2"));
+            cmd.arg(fixture!("lines/f1"));
+            cmd.arg(fixture!("lines/f2"));
             cmd.assert().success();
 
             let output = String::from_utf8(cmd.output().unwrap().stdout).unwrap();

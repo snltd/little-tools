@@ -9,6 +9,6 @@ for tool in \
   mmv \
   randos 
 do
-  cargo install --path $tool
+  cargo install $1 --path $tool
 done
 

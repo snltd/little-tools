@@ -223,125 +223,130 @@ pub fn pad_num(num: i32) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use test_utils::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_file_token_map() {
-        let result = fixture("some.dir").file_token_map("tag").unwrap();
+        let result = fixture!("some.dir").file_token_map("tag").unwrap();
 
         assert_eq!(5, result.tagged.len());
         assert_eq!(4, result.untagged.len());
 
-        assert!(Utf8PathBuf::from("test/no/such/dir")
-            .file_token_map("tag")
-            .is_err());
+        assert!(
+            Utf8PathBuf::from("test/no/such/dir")
+                .file_token_map("tag")
+                .is_err()
+        );
     }
 
     #[test]
     fn test_set_tag() {
-        let t = fixture("some.dir")
+        let t = fixture!("some.dir")
             .categorise_files("tag".to_string())
             .unwrap();
 
         assert_eq!(
             vec![(
-                fixture("some.dir/some.dir.0001.jpg"),
-                fixture("some.dir/some.dir.tag.0001.jpg")
+                fixture!("some.dir/some.dir.0001.jpg"),
+                fixture!("some.dir/some.dir.tag.0001.jpg")
             )],
-            t.set_tag(fixture("some.dir/some.dir.0001.jpg"), "tag",)
+            t.set_tag(fixture!("some.dir/some.dir.0001.jpg"), "tag",)
                 .unwrap(),
         );
 
         assert_eq!(
             vec![(
-                fixture("some.dir/some.dir.0004.jpg"),
-                fixture("some.dir/some.dir.tag.0001.jpg")
+                fixture!("some.dir/some.dir.0004.jpg"),
+                fixture!("some.dir/some.dir.tag.0001.jpg")
             )],
-            t.set_tag(fixture("some.dir/some.dir.0004.jpg"), "tag",)
+            t.set_tag(fixture!("some.dir/some.dir.0004.jpg"), "tag",)
                 .unwrap(),
         );
 
         assert_eq!(
             vec![(
-                fixture("some.dir/whatever.JPG"),
-                fixture("some.dir/some.dir.tag.0001.JPG")
+                fixture!("some.dir/whatever.JPG"),
+                fixture!("some.dir/some.dir.tag.0001.JPG")
             )],
-            t.set_tag(fixture("some.dir/whatever.JPG"), "tag",).unwrap(),
+            t.set_tag(fixture!("some.dir/whatever.JPG"), "tag",)
+                .unwrap(),
         );
 
-        assert!(t
-            .set_tag(fixture("some.dir/some.dir.tag.0004.jpg"), "tag",)
-            .unwrap()
-            .is_empty(),);
+        assert!(
+            t.set_tag(fixture!("some.dir/some.dir.tag.0004.jpg"), "tag",)
+                .unwrap()
+                .is_empty(),
+        );
     }
 
     #[test]
     fn test_flip_tag() {
-        let t = fixture("some.dir")
+        let t = fixture!("some.dir")
             .categorise_files("tag".to_string())
             .unwrap();
 
         assert_eq!(
             vec![(
-                fixture("some.dir/some.dir.0001.jpg"),
-                fixture("some.dir/some.dir.tag.0001.jpg")
+                fixture!("some.dir/some.dir.0001.jpg"),
+                fixture!("some.dir/some.dir.tag.0001.jpg")
             )],
-            t.flip_tag(fixture("some.dir/some.dir.0001.jpg"), "tag",)
+            t.flip_tag(fixture!("some.dir/some.dir.0001.jpg"), "tag",)
                 .unwrap(),
         );
 
         assert_eq!(
             vec![(
-                fixture("some.dir/some.dir.tag.0004.jpg"),
-                fixture("some.dir/some.dir.0004.jpg")
+                fixture!("some.dir/some.dir.tag.0004.jpg"),
+                fixture!("some.dir/some.dir.0004.jpg")
             )],
-            t.flip_tag(fixture("some.dir/some.dir.tag.0004.jpg"), "tag",)
+            t.flip_tag(fixture!("some.dir/some.dir.tag.0004.jpg"), "tag",)
                 .unwrap(),
         );
 
         assert_eq!(
             vec![(
-                fixture("some.dir/whatever.JPG"),
-                fixture("some.dir/some.dir.tag.0001.JPG")
+                fixture!("some.dir/whatever.JPG"),
+                fixture!("some.dir/some.dir.tag.0001.JPG")
             )],
-            t.flip_tag(fixture("some.dir/whatever.JPG"), "tag",)
+            t.flip_tag(fixture!("some.dir/whatever.JPG"), "tag",)
                 .unwrap(),
         );
     }
 
     #[test]
     fn test_unset_tag() {
-        let t = fixture("some.dir")
+        let t = fixture!("some.dir")
             .categorise_files("tag".to_string())
             .unwrap();
 
         assert_eq!(
             vec![(
-                fixture("some.dir/some.dir.tag.0004.jpg"),
-                fixture("some.dir/some.dir.0004.jpg")
+                fixture!("some.dir/some.dir.tag.0004.jpg"),
+                fixture!("some.dir/some.dir.0004.jpg")
             )],
-            t.unset_tag(fixture("some.dir/some.dir.tag.0004.jpg"), "tag",)
+            t.unset_tag(fixture!("some.dir/some.dir.tag.0004.jpg"), "tag",)
                 .unwrap(),
         );
 
         assert_eq!(
             vec![(
-                fixture("some.dir/whatever.tag.55.JPG"),
-                fixture("some.dir/some.dir.0004.JPG")
+                fixture!("some.dir/whatever.tag.55.JPG"),
+                fixture!("some.dir/some.dir.0004.JPG")
             )],
-            t.unset_tag(fixture("some.dir/whatever.tag.55.JPG"), "tag",)
+            t.unset_tag(fixture!("some.dir/whatever.tag.55.JPG"), "tag",)
                 .unwrap(),
         );
 
-        assert!(t
-            .unset_tag(fixture("some.dir/some.dir.0001.jpg"), "tag",)
-            .unwrap()
-            .is_empty(),);
+        assert!(
+            t.unset_tag(fixture!("some.dir/some.dir.0001.jpg"), "tag",)
+                .unwrap()
+                .is_empty(),
+        );
     }
 
     #[test]
     fn test_hole_list() {
-        let t = fixture("some.dir")
+        let t = fixture!("some.dir")
             .categorise_files("tag".to_string())
             .unwrap();
 
@@ -353,17 +358,17 @@ mod test {
 
     #[test]
     fn test_fname_from_stem() {
-        let t = FilesInDir::new(fixture("some.dir"), "some.dir", "tag");
+        let t = FilesInDir::new(fixture!("some.dir"), "some.dir", "tag");
 
         assert_eq!(
-            fixture("some.dir/some.dir.0045.jpg"),
-            t.untagged.fname_from_stem(&fixture("rogue.jpg"), 45,)
+            fixture!("some.dir/some.dir.0045.jpg"),
+            t.untagged.fname_from_stem(&fixture!("rogue.jpg"), 45,)
         );
     }
 
     #[test]
     fn test_categorise_files() {
-        let result = fixture("some.dir")
+        let result = fixture!("some.dir")
             .categorise_files("tag".to_string())
             .unwrap();
 
@@ -372,10 +377,10 @@ mod test {
 
         assert_eq!(
             vec![
-                fixture("some.dir/some.dir.0001.jpg"),
-                fixture("some.dir/some.dir.0002.jpg"),
-                fixture("some.dir/some.dir.0003.jpg"),
-                fixture("some.dir/some.dir.0005.jpg"),
+                fixture!("some.dir/some.dir.0001.jpg"),
+                fixture!("some.dir/some.dir.0002.jpg"),
+                fixture!("some.dir/some.dir.0003.jpg"),
+                fixture!("some.dir/some.dir.0005.jpg"),
             ],
             result.untagged.numbered_files,
         );
@@ -384,10 +389,10 @@ mod test {
 
         assert_eq!(
             vec![
-                fixture("some.dir/some.dir.tag.0002.jpg"),
-                fixture("some.dir/some.dir.tag.0003.jpg"),
-                fixture("some.dir/some.dir.tag.0004.jpg"),
-                fixture("some.dir/some.dir.tag.1234.jpg"),
+                fixture!("some.dir/some.dir.tag.0002.jpg"),
+                fixture!("some.dir/some.dir.tag.0003.jpg"),
+                fixture!("some.dir/some.dir.tag.0004.jpg"),
+                fixture!("some.dir/some.dir.tag.1234.jpg"),
             ],
             result.tagged.numbered_files,
         );
@@ -396,21 +401,21 @@ mod test {
 
         assert_eq!(
             vec![
-                fixture("some.dir/other_random_name.jpg"),
-                fixture("some.dir/random_name.jpg"),
+                fixture!("some.dir/other_random_name.jpg"),
+                fixture!("some.dir/random_name.jpg"),
             ],
             result.untagged.rogue_files,
         );
 
         assert_eq!(
-            vec![fixture("some.dir/random_name.tag.1234.jpg")],
+            vec![fixture!("some.dir/random_name.tag.1234.jpg")],
             result.tagged.rogue_files,
         );
     }
 
     #[test]
     fn test_categorise_files_2() {
-        let result = fixture("some.dir")
+        let result = fixture!("some.dir")
             .categorise_files("xx".to_string())
             .unwrap();
 
@@ -424,10 +429,10 @@ mod test {
 
         assert_eq!(
             vec![
-                fixture("some.dir/some.dir.0001.jpg"),
-                fixture("some.dir/some.dir.0002.jpg"),
-                fixture("some.dir/some.dir.0003.jpg"),
-                fixture("some.dir/some.dir.0005.jpg"),
+                fixture!("some.dir/some.dir.0001.jpg"),
+                fixture!("some.dir/some.dir.0002.jpg"),
+                fixture!("some.dir/some.dir.0003.jpg"),
+                fixture!("some.dir/some.dir.0005.jpg"),
             ],
             result.untagged.numbered_files,
         );

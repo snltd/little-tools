@@ -72,32 +72,35 @@ impl PathExt for Utf8PathBuf {
 #[cfg(test)]
 mod test {
     use super::*;
-    use test_utils::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_get_number() {
         assert_eq!(
             Some(1),
-            fixture("/path/to/some.dir/some.dir.0001.jpg").get_number()
+            fixture!("/path/to/some.dir/some.dir.0001.jpg").get_number()
         );
 
         assert_eq!(
             Some(99),
-            fixture("/path/to/some.dir/some.dir.tag.0099.jpg").get_number()
+            fixture!("/path/to/some.dir/some.dir.tag.0099.jpg").get_number()
         );
 
-        assert_eq!(None, fixture("/path/to/some.dir/some.dir.jpg").get_number());
+        assert_eq!(
+            None,
+            fixture!("/path/to/some.dir/some.dir.jpg").get_number()
+        );
     }
 
     #[test]
     fn test_is_tagged() {
-        assert!(fixture("some.dir.tag.0001.jpg").is_tagged("tag"));
-        assert!(fixture("some.dir.tag.0001.jpg").is_tagged("tag"));
-        assert!(fixture("/path/to/some.dir/some.dir.tag.0001.jpg").is_tagged("tag"));
-        assert!(!fixture("oo.tag.oo.123.png").is_tagged("tag"));
-        assert!(!fixture("/path/to/some.dir/some.dir.0001.jpg").is_tagged("tag"));
-        assert!(!fixture("/path/to/some.tag.dir/some.dir.0001.jpg").is_tagged("tag"));
-        assert!(!fixture("some.dir.0001.jpg").is_tagged("tag"));
-        assert!(!fixture("butagy_rabbit.jpg").is_tagged("tag"));
+        assert!(fixture!("some.dir.tag.0001.jpg").is_tagged("tag"));
+        assert!(fixture!("some.dir.tag.0001.jpg").is_tagged("tag"));
+        assert!(fixture!("/path/to/some.dir/some.dir.tag.0001.jpg").is_tagged("tag"));
+        assert!(!fixture!("oo.tag.oo.123.png").is_tagged("tag"));
+        assert!(!fixture!("/path/to/some.dir/some.dir.0001.jpg").is_tagged("tag"));
+        assert!(!fixture!("/path/to/some.tag.dir/some.dir.0001.jpg").is_tagged("tag"));
+        assert!(!fixture!("some.dir.0001.jpg").is_tagged("tag"));
+        assert!(!fixture!("butagy_rabbit.jpg").is_tagged("tag"));
     }
 }
