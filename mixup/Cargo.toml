@@ -13,4 +13,4 @@ rand = "0.10.1"
 
 [dev-dependencies]
 camino-tempfile-ext = "0.3.3"
-test_utils = { path = "../test_utils" }
+snltest = { git = "https://github.com/snltd/snltest.git" }

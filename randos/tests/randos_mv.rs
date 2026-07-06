@@ -1,8 +1,12 @@
+mod common;
+use common::setup_randos_source_dir;
+
 #[cfg(test)]
 mod test {
+    use super::*;
     use assert_cmd::cargo::cargo_bin_cmd;
     use camino_tempfile_ext::prelude::*;
-    use test_utils::{ContainsFiles, setup_randos_source_dir};
+    use snltest::ContainsFiles;
 
     #[test]
     #[ignore]

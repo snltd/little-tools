@@ -84,40 +84,20 @@ fn count_files_only(dir: ReadDirUtf8) -> usize {
 #[cfg(test)]
 mod test {
     use super::*;
+    use snltest::fixture;
 
     #[test]
     fn test_count_files_recurse() {
-        assert_eq!(
-            2,
-            count_files(&Utf8PathBuf::from("tests/resources/a"), true, true).unwrap()
-        );
-        assert_eq!(
-            6,
-            count_files(&Utf8PathBuf::from("tests/resources/b"), true, true).unwrap()
-        );
-        assert_eq!(
-            8,
-            count_files(&Utf8PathBuf::from("tests/resources/b"), true, false).unwrap()
-        );
+        assert_eq!(2, count_files(&fixture!("a"), true, true).unwrap());
+        assert_eq!(6, count_files(&fixture!("b"), true, true).unwrap());
+        assert_eq!(8, count_files(&fixture!("b"), true, false).unwrap());
     }
 
     #[test]
     fn test_count_files() {
-        assert_eq!(
-            2,
-            count_files(&Utf8PathBuf::from("tests/resources/a"), false, true).unwrap()
-        );
-        assert_eq!(
-            2,
-            count_files(&Utf8PathBuf::from("tests/resources/b"), false, true).unwrap()
-        );
-        assert_eq!(
-            4,
-            count_files(&Utf8PathBuf::from("tests/resources/b"), false, false).unwrap()
-        );
-        assert_eq!(
-            None,
-            count_files(&Utf8PathBuf::from("tests/resources/z"), false, false)
-        );
+        assert_eq!(2, count_files(&fixture!("a"), false, true).unwrap());
+        assert_eq!(2, count_files(&fixture!("b"), false, true).unwrap());
+        assert_eq!(4, count_files(&fixture!("b"), false, false).unwrap());
+        assert_eq!(None, count_files(&fixture!("z"), false, false));
     }
 }

@@ -165,13 +165,13 @@ fn rename(src: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<
 #[cfg(test)]
 mod test {
     use super::*;
-    use test_utils::fixture;
+    use snltest::fixture;
 
     #[test]
     fn target_requires_no_change() {
         let opts = Opts {
-            pattern: String::from("does_not_match"),
-            replace: String::from("new"),
+            pattern: "does_not_match".to_string(),
+            replace: "new".to_string(),
             clobber: false,
             full_names: false,
             git: false,
@@ -183,8 +183,8 @@ mod test {
         };
 
         assert_eq!(
-            fixture("file_file_file.txt"),
-            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+            fixture!("file_file_file.txt"),
+            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
         );
     }
 
@@ -204,8 +204,8 @@ mod test {
         };
 
         assert_eq!(
-            fixture("new_file_file.txt"),
-            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+            fixture!("new_file_file.txt"),
+            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
         );
     }
 
@@ -225,8 +225,8 @@ mod test {
         };
 
         assert_eq!(
-            fixture("file_new_file.txt"),
-            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+            fixture!("file_new_file.txt"),
+            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
         );
     }
     #[test]
@@ -245,8 +245,8 @@ mod test {
         };
 
         assert_eq!(
-            fixture("new_new_new.txt"),
-            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+            fixture!("new_new_new.txt"),
+            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
         );
     }
 
@@ -266,8 +266,8 @@ mod test {
         };
 
         assert_eq!(
-            fixture("bill_bill_bill.txt"),
-            target_path(&fixture("file_file_file.txt"), &opts).unwrap()
+            fixture!("bill_bill_bill.txt"),
+            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
         );
     }
 }

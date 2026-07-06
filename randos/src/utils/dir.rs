@@ -86,8 +86,8 @@ mod tests {
     use super::*;
     use assert_unordered::assert_eq_unordered;
     use camino_tempfile_ext::prelude::*;
+    use snltest::fixture;
     use std::fs;
-    use test_utils::fixture;
 
     #[test]
     fn test_dirs_under() {
@@ -103,9 +103,10 @@ mod tests {
         let dirs = vec![temp_dir.path().to_owned(), subdir3.as_path().to_owned()];
         let all_dirs = dirs_under(&dirs);
 
-        let expected_dirs = vec![temp_dir.path().to_path_buf(), subdir1, subdir2, subdir3]
-            .into_iter()
-            .collect();
+        let expected_dirs: Vec<Utf8PathBuf> =
+            vec![temp_dir.path().to_path_buf(), subdir1, subdir2, subdir3]
+                .into_iter()
+                .collect();
 
         let result_dirs: Vec<_> = all_dirs.into_iter().collect();
         assert_eq_unordered!(result_dirs, expected_dirs);
@@ -113,8 +114,8 @@ mod tests {
 
     #[test]
     fn test_expand_dir_list_no_recurse() {
-        let result = expand_dir_list(&[fixture("dir_1"), fixture("dir_2")], false);
-        let expected = vec![fixture("dir_1"), fixture("dir_2")];
+        let result = expand_dir_list(&[fixture!("dir_1"), fixture!("dir_2")], false);
+        let expected = vec![fixture!("dir_1"), fixture!("dir_2")];
         assert_eq_unordered!(expected, result);
     }
 }

@@ -54,9 +54,9 @@ pub fn is_candidate(file: &Utf8Path, opts: &FilterOpts) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use filetime::{FileTime, set_file_times};
+    use filetime::FileTime;
     use regex::Regex;
-    use test_utils::fixture;
+    use snltest::fixture;
 
     #[test]
     fn test_is_candidates_age_filter() {
@@ -64,9 +64,12 @@ mod test {
         let file_2_mtime = FileTime::from_unix_time(1737200000, 0);
         let file_3_mtime = FileTime::from_unix_time(1737300000, 0);
 
-        set_file_times(fixture("dir_2/file_2_1.txt"), file_1_mtime, file_1_mtime).unwrap();
-        set_file_times(fixture("dir_2/file_2_2.txt"), file_2_mtime, file_2_mtime).unwrap();
-        set_file_times(fixture("dir_2/file_2_3.txt"), file_3_mtime, file_3_mtime).unwrap();
+        filetime::set_file_times(fixture!("dir_2/file_2_1.txt"), file_1_mtime, file_1_mtime)
+            .unwrap();
+        filetime::set_file_times(fixture!("dir_2/file_2_2.txt"), file_2_mtime, file_2_mtime)
+            .unwrap();
+        filetime::set_file_times(fixture!("dir_2/file_2_3.txt"), file_3_mtime, file_3_mtime)
+            .unwrap();
 
         let selector_opts = FilterOpts {
             extensions: None,
@@ -228,9 +231,9 @@ mod test {
 
     fn test_candidates(good: Vec<&str>, bad: Vec<&str>, opts: &FilterOpts) {
         good.iter()
-            .for_each(|c| assert!(is_candidate(&fixture(c), opts), "{} WAS BAD", c));
+            .for_each(|c| assert!(is_candidate(&fixture!(c), opts), "{} WAS BAD", c));
 
         bad.iter()
-            .for_each(|c| assert!(!is_candidate(&fixture(c), opts), "{} WAS GOOD", c));
+            .for_each(|c| assert!(!is_candidate(&fixture!(c), opts), "{} WAS GOOD", c));
     }
 }
