@@ -1,28 +1,35 @@
-use anyhow::{Context, anyhow};
+mod action;
+mod replace;
+
 use camino::Utf8PathBuf;
 use clap::Parser;
-use common::verbose;
-use std::fs;
-mod replace;
+use regex::Regex;
+use std::process;
+
+use crate::replace::{FromPattern, RenameOpts, Replacing};
+use action::ActionOpts;
 
 #[derive(Parser, Debug)]
 #[clap(version, about = "Batch renamer", long_about = None)]
 struct Cli {
-    /// pattern to replace. Supports Rust regexes
-    #[clap(value_parser)]
-    pattern: String,
-    /// string that should replace <pattern>. Supports Rust capture groups, like ${1}
-    #[clap(value_parser)]
-    replace: String,
-    /// replace all occurrences of pattern
-    #[clap(short = 'a', long = "all")]
+    /// treat PATTERN as a literal string rather than a regex pattern
+    #[clap(short, long)]
+    literal: bool,
+    /// replace all occurrences of PATTERN
+    #[clap(short = 'a', long = "all", conflicts_with = "replace_nth")]
     replace_all: bool,
-    /// just print the rename operations
+    /// print the rename operations without doing them
     #[clap(short, long)]
     noop: bool,
-    /// overwrite existing files
+    /// overwrite any existing files
     #[clap(short, long)]
     clobber: bool,
+    /// include the filename extension in replacements
+    #[clap(short, long)]
+    include_ext: bool,
+    /// set extension to given arg
+    #[clap(short = 'E', long)]
+    extension: Option<String>,
     /// show fully qualified pathnames in verbose output
     #[clap(short, long = "full")]
     full_names: bool,
@@ -33,7 +40,7 @@ struct Cli {
         conflicts_with = "replace_all",
         value_parser
     )]
-    replace_nth: Option<usize>,
+    replace_nth: Vec<usize>,
     /// with -n, only print target names
     #[clap(short, long = "terse")]
     terse_output: bool,
@@ -43,231 +50,77 @@ struct Cli {
     /// print arguments for git mv
     #[clap(short = 'G', long = "git", conflicts_with = "noop")]
     git: bool,
+    /// pattern to replace. Supports Rust regexes
+    #[clap(value_parser)]
+    from: String,
+    /// string that should replace <pattern>. Supports Rust capture groups, like ${1}
+    #[clap(value_parser)]
+    to: String,
     /// files to rename
     #[arg(required = true)]
     files: Vec<Utf8PathBuf>,
 }
 
-struct Opts {
-    pattern: String,
-    replace_nth: Option<usize>,
-    replace: String,
-    replace_all: bool,
-    noop: bool,
-    clobber: bool,
-    full_names: bool,
-    terse_output: bool,
-    verbose: bool,
-    git: bool,
-}
-
-fn main() {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let mut ret = 0;
 
-    let opts = Opts {
-        pattern: cli.pattern,
-        replace: cli.replace,
-        replace_all: cli.replace_all,
-        replace_nth: cli.replace_nth,
-        noop: cli.noop,
-        clobber: cli.clobber,
-        full_names: cli.full_names,
-        terse_output: cli.terse_output,
-        verbose: cli.verbose,
-        git: cli.git,
+    let replacing = if cli.replace_all {
+        Replacing::All
+    } else if cli.replace_nth.is_empty() {
+        Replacing::Indices(vec![0])
+    } else {
+        Replacing::Indices(cli.replace_nth)
     };
 
-    for file in &cli.files {
-        if let Err(e) = process_file(file, &opts) {
-            ret = 1;
-            eprintln!("ERROR: {}: {}", file, e);
-        }
-    }
-
-    std::process::exit(ret)
-}
-
-fn process_file(source: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<bool> {
-    let target = target_path(source, opts)?;
-    let source_name;
-    let target_name;
-
-    if opts.full_names {
-        source_name = source.to_string();
-        target_name = target.to_string();
+    let from = if cli.literal {
+        FromPattern::Literal(cli.from.clone())
     } else {
-        source_name = source
-            .file_name()
-            .context("cannot get source file name")?
-            .to_owned();
-        target_name = target
-            .file_name()
-            .context("cannot get target file name")?
-            .to_owned();
-    };
-
-    if target_name == *source_name {
-        verbose!(opts, "{}: no change", source_name);
-        return Ok(false);
-    }
-
-    if opts.git {
-        println!("git mv {} {}", source, target);
-        Ok(true)
-    } else {
-        if opts.terse_output {
-            println!("{}", target_name);
-        } else {
-            verbose!(opts, "{} -> {}", source_name, target_name);
-        }
-
-        if opts.noop {
-            return Ok(false);
-        }
-
-        rename(source, &target, opts)?;
-        Ok(true)
-    }
-}
-
-fn target_path(source: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<Utf8PathBuf> {
-    let source = source.canonicalize_utf8()?;
-
-    let dir = source.parent().context("cannot get parent")?;
-    let name = source.file_name().context("cannot get file name")?;
-    let pattern = opts.pattern.as_str();
-    let replace = opts.replace.as_str();
-
-    let target_name = match opts.replace_nth {
-        Some(index) => replace::nth(pattern, replace, name, index),
-        None => {
-            if opts.replace_all {
-                replace::all(pattern, replace, name)
-            } else {
-                replace::first(pattern, replace, name)
+        match Regex::new(&cli.from) {
+            Ok(rx) => FromPattern::Regex(rx),
+            Err(e) => {
+                eprintln!("ERROR compiling regex {}: {e:#}", cli.from);
+                process::exit(2);
             }
         }
     };
 
-    let target = dir.join(target_name);
-    Ok(target)
-}
+    let rename_opts = RenameOpts {
+        from,
+        to: cli.to,
+        replacing,
+    };
 
-fn rename(src: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<()> {
-    if dest.exists() && !opts.clobber {
-        return Err(anyhow!("filename collision [-c to clobber]"));
-    }
-
-    Ok(fs::rename(src, dest)?)
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use snltest::fixture;
-
-    #[test]
-    fn target_requires_no_change() {
-        let opts = Opts {
-            pattern: "does_not_match".to_string(),
-            replace: "new".to_string(),
-            clobber: false,
-            full_names: false,
-            git: false,
-            noop: true,
-            verbose: true,
-            replace_all: false,
-            replace_nth: None,
-            terse_output: false,
+    let action_list =
+        match action::action_list(cli.files, cli.include_ext, cli.extension, &rename_opts) {
+            Ok(list) => list,
+            Err(e) => {
+                eprintln!("ERROR: {e:#}");
+                process::exit(3);
+            }
         };
 
-        assert_eq!(
-            fixture!("file_file_file.txt"),
-            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
-        );
+    // If we don't think we can rename everything, we'll rename nothing
+    if let Err(e) = action::check_action_list(&action_list) {
+        eprintln!("ERROR: {e:#}");
+        process::exit(4);
     }
 
-    #[test]
-    fn target_requires_change_of_first_match() {
-        let opts = Opts {
-            pattern: String::from("file"),
-            replace: String::from("new"),
-            clobber: false,
-            full_names: false,
-            git: false,
-            noop: true,
-            verbose: true,
-            replace_all: false,
-            replace_nth: None,
-            terse_output: false,
-        };
+    let action_opts = ActionOpts {
+        clobber: cli.clobber,
+        full_names: cli.full_names,
+        git: cli.git,
+        noop: cli.noop,
+        terse_output: cli.terse_output,
+        verbose: cli.verbose,
+    };
 
-        assert_eq!(
-            fixture!("new_file_file.txt"),
-            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
-        );
+    for (src, target) in &action_list {
+        if let Err(e) = action::rename_file(src, target, &action_opts) {
+            ret = 1;
+            eprintln!("ERROR renaming {src} -> {target}: {e:#}");
+        }
     }
 
-    #[test]
-    fn target_requires_change_of_second_match() {
-        let opts = Opts {
-            pattern: String::from("file"),
-            replace: String::from("new"),
-            clobber: false,
-            full_names: false,
-            git: false,
-            noop: true,
-            verbose: true,
-            replace_all: false,
-            replace_nth: Some(1),
-            terse_output: false,
-        };
-
-        assert_eq!(
-            fixture!("file_new_file.txt"),
-            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
-        );
-    }
-    #[test]
-    fn target_requires_change_of_all_matches() {
-        let opts = Opts {
-            pattern: String::from("file"),
-            replace: String::from("new"),
-            clobber: false,
-            full_names: false,
-            git: false,
-            noop: true,
-            verbose: true,
-            replace_all: true,
-            replace_nth: None,
-            terse_output: false,
-        };
-
-        assert_eq!(
-            fixture!("new_new_new.txt"),
-            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
-        );
-    }
-
-    #[test]
-    fn target_requires_change_of_all_regex() {
-        let opts = Opts {
-            pattern: String::from("f([a-z]+)e"),
-            replace: String::from("b${1}l"),
-            replace_all: true,
-            clobber: false,
-            full_names: false,
-            git: false,
-            noop: true,
-            verbose: true,
-            replace_nth: None,
-            terse_output: false,
-        };
-
-        assert_eq!(
-            fixture!("bill_bill_bill.txt"),
-            target_path(&fixture!("file_file_file.txt"), &opts).unwrap()
-        );
-    }
+    process::exit(ret)
 }
