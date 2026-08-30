@@ -151,6 +151,6 @@ mod test {
             .arg("/no/such/file")
             .assert()
             .failure()
-            .stderr("ERROR: /no/such/file: No such file or directory (os error 2)\n");
+            .stderr("ERROR: cannot canonicalize /no/such/file: No such file or directory (os error 2)\n");
     }
 }
