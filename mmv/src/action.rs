@@ -235,8 +235,7 @@ mod test {
 
     #[test]
     fn test_action_list() {
-        let td = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
-        let tp = td.path();
+        let (_td, tp) = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
         let paths = vec![tp.join("in_file_1.txt"), tp.join("in_file_2.txt")];
 
         let expected = vec![
