@@ -1,12 +1,13 @@
 [package]
 name = "cs"
-version = "2.0.2"
+version = "2.0.3"
 edition = "2024"
 
 [dependencies]
 anyhow = "1.0.97"
 camino = "1.1.9"
 clap = { version = "4.5", features = ["derive"] }
+common = {path = "../common" }
 unidecode = "0.3.0"
 
 [dev-dependencies]

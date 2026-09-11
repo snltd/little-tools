@@ -1,13 +1,14 @@
-use anyhow::anyhow;
+use anyhow::ensure;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
-use filetime::{set_file_times, FileTime};
+use common::verbose;
+use filetime::{FileTime, set_file_times};
 use glob::glob;
 use std::collections::BTreeMap;
-use std::fs::{metadata, File};
+use std::fs::{File, metadata};
 use std::io;
 use std::time::SystemTime;
-use time::{format_description::well_known::Rfc2822, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc2822};
 
 type MTimeMap = BTreeMap<Utf8PathBuf, SystemTime>;
 
@@ -33,14 +34,22 @@ struct Cli {
     dest: String,
 }
 
-fn touch_directory(source: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<()> {
-    if !source.exists() {
-        return Err(anyhow!("No source directory: {}", source));
-    }
+fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
 
-    if !dest.exists() {
-        return Err(anyhow!("No destination directory: {}", dest));
-    }
+    touch_directory(
+        &Utf8PathBuf::from(cli.source),
+        &Utf8PathBuf::from(cli.dest),
+        &Opts {
+            verbose: cli.verbose,
+            noop: cli.noop,
+        },
+    )
+}
+
+fn touch_directory(source: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> anyhow::Result<()> {
+    ensure!(source.exists(), "No source directory: {source}");
+    ensure!(dest.exists(), "No destination directory: {dest}");
 
     let source_timestamps = timestamps_for(source, opts);
     let dest_timestamps = timestamps_for(dest, opts);
@@ -50,26 +59,22 @@ fn touch_directory(source: &Utf8PathBuf, dest: &Utf8PathBuf, opts: &Opts) -> any
         if let Some(dest_ts) = dest_timestamps.get(&file) {
             let target_file = dest.join(&file);
             if &ts != dest_ts {
-                if opts.noop || opts.verbose {
-                    println!("{} -> {}", target_file, format_time(ts));
-                }
+                verbose!(opts, "{target_file} -> {}", format_time(ts));
 
                 if !opts.noop && set_timestamp(&target_file, ts).is_err() {
                     errs += 1;
                 }
-            } else if opts.verbose {
-                println!("{} : correct", file);
+            } else {
+                verbose!(opts, "{file} : correct");
             }
-        } else if opts.verbose {
-            println!("{} : no source file", file);
+        } else {
+            verbose!(opts, "{file} : no source file");
         }
     }
 
-    if errs == 0 {
-        Ok(())
-    } else {
-        Err(anyhow!("Failed to set times in {} files", errs))
-    }
+    ensure!(errs == 0, "Failed to set times in {errs} files");
+
+    Ok(())
 }
 
 fn set_timestamp(file: &Utf8PathBuf, ts: SystemTime) -> io::Result<()> {
@@ -84,9 +89,7 @@ fn format_time(time: SystemTime) -> String {
 }
 
 fn timestamps_for(dir: &Utf8PathBuf, opts: &Opts) -> MTimeMap {
-    if opts.verbose {
-        println!("Collecting timestamps for {}", dir);
-    }
+    verbose!(opts, "Collecting timestamps for {dir}");
 
     let pattern = format!("{}/**/*", dir);
     glob(&pattern)
@@ -100,25 +103,4 @@ fn timestamps_for(dir: &Utf8PathBuf, opts: &Opts) -> MTimeMap {
             Some((utf8_path.to_path_buf(), modified_time))
         })
         .collect()
-}
-
-fn main() {
-    let cli = Cli::parse();
-
-    let opts = Opts {
-        verbose: cli.verbose,
-        noop: cli.noop,
-    };
-
-    match touch_directory(
-        &Utf8PathBuf::from(cli.source),
-        &Utf8PathBuf::from(cli.dest),
-        &opts,
-    ) {
-        Ok(_) => std::process::exit(0),
-        Err(e) => {
-            eprintln!("ERROR: {}", e);
-            std::process::exit(1);
-        }
-    }
 }

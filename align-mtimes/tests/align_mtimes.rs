@@ -107,6 +107,6 @@ fn test_align_mtimes_bad_usage() {
     cargo_bin_cmd!("align-mtimes")
         .args(["/no/such/dir", "/no/such/other/dir"])
         .assert()
-        .stderr("ERROR: No source directory: /no/such/dir\n")
+        .stderr("Error: No source directory: /no/such/dir\n")
         .failure();
 }

@@ -16,7 +16,7 @@ pub fn run(dirlist: &Vec<Utf8PathBuf>, opts: &Opts) -> anyhow::Result<()> {
 
 fn movers_for_type(files: HashMap<Utf8PathBuf, FileTokens>) -> RenameActionsResult {
     let mut mtime_vec: Vec<PathAndTokens> = files.into_iter().collect();
-    mtime_vec.sort_by(|a, b| a.1.mtime.cmp(&b.1.mtime));
+    mtime_vec.sort_by_key(|a| a.1.mtime);
     make_move_list(find_movers(&mtime_vec))
 }
 

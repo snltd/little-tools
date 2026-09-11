@@ -172,6 +172,6 @@ mod test {
             .arg("/no/such/file")
             .assert()
             .failure()
-            .stderr("ERROR on /no/such/file: file not found\n");
+            .stderr("ERROR on /no/such/file: No such file or directory (os error 2)\n");
     }
 }
