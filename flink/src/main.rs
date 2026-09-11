@@ -50,12 +50,9 @@ fn main() {
 
     for dir in cli.source_dir {
         if dir.exists() {
-            match link_from_dir(&dir, &opts) {
-                Ok(_) => (),
-                Err(e) => {
-                    eprintln!("ERROR linking from {dir}: {e}");
-                    exit_code = 1;
-                }
+            if let Err(e) = link_from_dir(&dir, &opts) {
+                eprintln!("ERROR linking from {dir}: {e}");
+                exit_code = 1;
             }
         } else {
             eprintln!("ERROR: {dir} not found");

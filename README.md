@@ -24,7 +24,7 @@ else goes in `symbols`.)
 
 ## `cf`
 
-Counts files in directories. Ouptut is like `wc`, so it's easy to sort.
+Counts files in directories. Output is like `wc`, so it's easy to sort.
 
 ```sh
 $ cf /etc /bin

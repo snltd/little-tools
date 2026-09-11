@@ -1,6 +1,7 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
+use common::verbose;
 use std::{fs, process};
 use unidecode::unidecode_char;
 
@@ -45,7 +46,7 @@ fn main() {
 
     for file in cli.files {
         if let Err(e) = process_file(&file, &opts) {
-            eprintln!("ERROR on {}: {}", file, e);
+            eprintln!("ERROR on {file}: {e}");
             exit_code = 1;
         }
     }
@@ -54,11 +55,8 @@ fn main() {
 }
 
 fn process_file(path: &Utf8Path, opts: &Opts) -> anyhow::Result<bool> {
-    if !path.exists() {
-        return Err(anyhow!("file not found"));
-    }
-
     let path = path.canonicalize_utf8()?;
+
     match new_path(&path, opts)? {
         Some(new_path) => rename_file(&path, &new_path, opts),
         None => Ok(false),
@@ -72,9 +70,7 @@ fn new_path(path: &Utf8Path, opts: &Opts) -> anyhow::Result<Option<Utf8PathBuf>>
     let mut new_name = ascii_filename(basename);
 
     if basename == new_name {
-        if opts.verbose {
-            println!("{} has acceptable name", path);
-        }
+        verbose!(opts, "{path} has acceptable name");
         return Ok(None);
     }
 
@@ -82,12 +78,10 @@ fn new_path(path: &Utf8Path, opts: &Opts) -> anyhow::Result<Option<Utf8PathBuf>>
 
     if new_path.exists() {
         if opts.clobber {
-            if opts.verbose {
-                println!("{} will be overwritten", path);
-            }
+            verbose!(opts, "{path} will be overwritten");
             return Ok(Some(new_path));
         } else if opts.nonumber {
-            return Err(anyhow!("file exists: {}", new_path));
+            bail!("file exists: {new_path}");
         }
     }
 
@@ -105,9 +99,7 @@ fn new_path(path: &Utf8Path, opts: &Opts) -> anyhow::Result<Option<Utf8PathBuf>>
 }
 
 fn rename_file(old: &Utf8Path, new: &Utf8Path, opts: &Opts) -> anyhow::Result<bool> {
-    if opts.verbose || opts.noop {
-        println!("{} -> {}", old, new);
-    }
+    verbose!(opts, "{old} -> {new}");
 
     if opts.noop {
         Ok(false)
@@ -161,7 +153,7 @@ fn numbered_filename(file_name: &str) -> anyhow::Result<String> {
     let mut ret_chunks = Vec::new();
 
     if chunks.len() == 1 {
-        return Ok(format!("{}.001", file_name));
+        return Ok(format!("{file_name}.001"));
     }
 
     let extension = chunks.pop().context("failed to get extension")?;

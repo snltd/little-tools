@@ -1,6 +1,7 @@
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
+use common::verbose;
 use std::{fs, process};
 
 #[derive(Parser)]
@@ -25,55 +26,61 @@ struct Cli {
     files: Vec<Utf8PathBuf>,
 }
 
+struct Opts {
+    root: Utf8PathBuf,
+    noop: bool,
+    verbose: bool,
+    group: bool,
+}
+
 fn main() {
     let cli = Cli::parse();
-    let mut errs = false;
+    let mut exit_code = 0;
 
-    for f in &cli.files {
-        if let Err(e) = process(f, &cli) {
-            eprintln!("ERROR: failed to process {}: {}", &f, e);
-            errs = true;
+    let opts = Opts {
+        root: cli.root,
+        noop: cli.noop,
+        verbose: cli.verbose,
+        group: cli.group,
+    };
+
+    for path in &cli.files {
+        if let Err(e) = process(path, &opts) {
+            eprintln!("ERROR: failed to process {path}: {e}");
+            exit_code = 1;
         }
     }
 
-    if errs {
-        process::exit(1);
-    }
+    process::exit(exit_code);
 }
 
-fn process(file: &Utf8Path, cli: &Cli) -> anyhow::Result<bool> {
-    let f = file.canonicalize_utf8()?;
+fn process(path: &Utf8Path, opts: &Opts) -> anyhow::Result<bool> {
+    let f = path.canonicalize_utf8()?;
     let basename = f.file_name().context("failed to get basename")?;
     let raw_initial = basename.to_lowercase().chars().next();
     let initial = raw_initial.context("failed to get initial")?;
-    let target_dir = target_from_initial(initial, &cli.root, cli.group);
+    let target_dir = target_from_initial(initial, &opts.root, opts.group);
 
     if !target_dir.exists() {
-        if cli.verbose {
-            println!("creating target {target_dir}");
-        }
+        verbose!(opts, "creating target {target_dir}");
 
-        if !cli.noop {
+        if !opts.noop {
             fs::create_dir_all(&target_dir)?;
         }
     }
 
     if target_dir == f {
-        return Ok(false);
+        Ok(false)
+    } else {
+        verbose!(opts, "{f} -> {target_dir}");
+
+        if !opts.noop {
+            let target_file = target_dir.join(basename);
+            fs::rename(&f, &target_file)?;
+        }
+
+        Ok(true)
     }
-
-    if cli.verbose || cli.noop {
-        println!("{} -> {}", f, target_dir);
-    }
-
-    if cli.noop {
-        return Ok(true);
-    }
-
-    let target_file = target_dir.join(basename);
-
-    fs::rename(&f, &target_file)?;
-    Ok(true)
 }
 
 fn target_from_initial(initial: char, root: &Utf8PathBuf, group: bool) -> Utf8PathBuf {
@@ -117,11 +124,10 @@ mod test {
         assert!(
             process(
                 &file_under_test,
-                &Cli {
+                &Opts {
                     root: temp.path().to_path_buf(),
                     verbose: false,
                     group: true,
-                    files: vec![],
                     noop: false,
                 },
             )
@@ -144,11 +150,10 @@ mod test {
         assert!(
             !process(
                 &file_under_test,
-                &Cli {
+                &Opts {
                     root: temp.path().to_path_buf().canonicalize_utf8().unwrap(),
                     verbose: false,
                     group: true,
-                    files: vec![],
                     noop: false,
                 },
             )

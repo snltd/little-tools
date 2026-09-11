@@ -1,6 +1,7 @@
 use crate::utils::types::Opts;
 use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand};
+use std::process;
 
 mod subcommands;
 #[macro_use]
@@ -102,7 +103,7 @@ fn main() {
             },
             None => {
                 eprintln!("ERROR: the 'dir' command needs a subcommand.");
-                std::process::exit(2);
+                process::exit(2);
             }
         },
         Commands::File(file) => match file.command {
@@ -113,13 +114,13 @@ fn main() {
             },
             None => {
                 eprintln!("ERROR: the 'file' command needs a subcommand.");
-                std::process::exit(2);
+                process::exit(2);
             }
         },
     };
 
     match result {
-        Ok(_) => std::process::exit(0),
-        Err(_) => std::process::exit(1),
+        Ok(_) => process::exit(0),
+        Err(_) => process::exit(1),
     }
 }
