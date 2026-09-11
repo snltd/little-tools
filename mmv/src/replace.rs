@@ -284,4 +284,19 @@ mod test {
             )
         );
     }
+
+    #[test]
+    fn test_change_for_blank() {
+        assert_eq!(
+            "start.end",
+            new_name(
+                "start.middle.end",
+                &RenameOpts {
+                    from: FromPattern::Literal("middle.".to_owned()),
+                    to: String::new(),
+                    replacing: Replacing::Indices(vec![0])
+                }
+            )
+        );
+    }
 }

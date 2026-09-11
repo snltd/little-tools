@@ -14,6 +14,8 @@ pub struct ActionOpts {
     pub verbose: bool,
 }
 
+/// Returns a vec of to->from tuples. If the new name is the same as the original, it does
+/// not go in the list.
 pub fn action_list(
     paths: Vec<Utf8PathBuf>,
     include_ext: bool,
@@ -24,7 +26,10 @@ pub fn action_list(
 
     for path in paths {
         let new_path = new_path(&path, include_ext, extension.as_deref(), rename_opts)?;
-        ret.push((path.to_owned(), new_path));
+
+        if path != new_path {
+            ret.push((path.to_owned(), new_path));
+        }
     }
 
     Ok(ret)
@@ -157,6 +162,69 @@ mod test {
     use snltest::tmpdir_with_files;
 
     #[test]
+    fn test_action_list_01() {
+        let td = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
+        let tp = td.path();
+        let paths = vec![tp.join("in_file_1.txt"), tp.join("in_file_2.txt")];
+
+        let expected = vec![
+            (tp.join("in_file_1.txt"), tp.join("out_file_1.txt")),
+            (tp.join("in_file_2.txt"), tp.join("out_file_2.txt")),
+        ];
+
+        let actual = action_list(
+            paths,
+            false,
+            None,
+            &RenameOpts {
+                from: (FromPattern::Literal("in".into())),
+                to: "out".into(),
+                replacing: Replacing::All,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_action_list_02() {
+        let td = tmpdir_with_files(vec![
+            "file1.mkv",
+            "file1.recoded.mkv",
+            "file2.mkv",
+            "file2.recoded.mkv",
+        ]);
+
+        let tp = td.path();
+        let paths = vec![
+            tp.join("file1.mkv"),
+            tp.join("file1.recoded.mkv"),
+            tp.join("file2.mkv"),
+            tp.join("file2.recoded.mkv"),
+        ];
+
+        let expected = vec![
+            (tp.join("file1.recoded.mkv"), tp.join("file1.mkv")),
+            (tp.join("file2.recoded.mkv"), tp.join("file2.mkv")),
+        ];
+
+        let actual = action_list(
+            paths,
+            false,
+            None,
+            &RenameOpts {
+                from: (FromPattern::Literal(".recoded".into())),
+                to: "".into(),
+                replacing: Replacing::All,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn test_file_parts() {
         assert_eq!(
             ("picture", Some("jpg")),
@@ -231,31 +299,5 @@ mod test {
                 "multiple files have same target: /tmp/in_file_1.txt, /tmp/in_file_2.txt"
             )
         );
-    }
-
-    #[test]
-    fn test_action_list() {
-        let td = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
-        let tp = td.path();
-        let paths = vec![tp.join("in_file_1.txt"), tp.join("in_file_2.txt")];
-
-        let expected = vec![
-            (tp.join("in_file_1.txt"), tp.join("out_file_1.txt")),
-            (tp.join("in_file_2.txt"), tp.join("out_file_2.txt")),
-        ];
-
-        let actual = action_list(
-            paths,
-            false,
-            None,
-            &RenameOpts {
-                from: (FromPattern::Literal("in".into())),
-                to: "out".into(),
-                replacing: Replacing::All,
-            },
-        )
-        .unwrap();
-
-        assert_eq!(expected, actual);
     }
 }
