@@ -163,8 +163,7 @@ mod test {
 
     #[test]
     fn test_action_list_01() {
-        let td = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
-        let tp = td.path();
+        let (_td, tp) = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
         let paths = vec![tp.join("in_file_1.txt"), tp.join("in_file_2.txt")];
 
         let expected = vec![
@@ -189,14 +188,13 @@ mod test {
 
     #[test]
     fn test_action_list_02() {
-        let td = tmpdir_with_files(vec![
+        let (_td, tp) = tmpdir_with_files(vec![
             "file1.mkv",
             "file1.recoded.mkv",
             "file2.mkv",
             "file2.recoded.mkv",
         ]);
 
-        let tp = td.path();
         let paths = vec![
             tp.join("file1.mkv"),
             tp.join("file1.recoded.mkv"),
