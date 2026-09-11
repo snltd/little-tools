@@ -298,4 +298,29 @@ mod test {
             )
         );
     }
+
+    #[test]
+    fn test_action_list() {
+        let (_td, tp) = tmpdir_with_files(vec!["in_file_1.txt", "in_file_2.txt"]);
+        let paths = vec![tp.join("in_file_1.txt"), tp.join("in_file_2.txt")];
+
+        let expected = vec![
+            (tp.join("in_file_1.txt"), tp.join("out_file_1.txt")),
+            (tp.join("in_file_2.txt"), tp.join("out_file_2.txt")),
+        ];
+
+        let actual = action_list(
+            paths,
+            false,
+            None,
+            &RenameOpts {
+                from: (FromPattern::Literal("in".into())),
+                to: "out".into(),
+                replacing: Replacing::All,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(expected, actual);
+    }
 }
