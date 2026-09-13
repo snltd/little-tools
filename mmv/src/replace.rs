@@ -1,9 +1,12 @@
+use anyhow::Context;
 use regex::Regex;
 
 #[derive(Debug)]
 pub enum Replacing {
     All,
     Indices(Vec<usize>),
+    Prefix(String),
+    Suffix(String),
 }
 
 #[derive(Debug)]
@@ -15,21 +18,35 @@ pub enum FromPattern {
 #[derive(Debug)]
 pub struct RenameOpts {
     pub from: FromPattern,
-    pub to: String,
+    pub to: Option<String>,
     pub replacing: Replacing,
 }
 
-pub fn new_name(orig: &str, opts: &RenameOpts) -> String {
-    match (&opts.replacing, &opts.from) {
-        (Replacing::All, FromPattern::Literal(from)) => orig.replace(from, &opts.to),
-        (Replacing::All, FromPattern::Regex(rx)) => rx.replacen(orig, 0, &opts.to).to_string(),
-        (Replacing::Indices(indices), FromPattern::Literal(from)) => {
-            replace_nth_literal(orig, from, &opts.to, indices)
+pub fn new_name(orig: &str, opts: &RenameOpts) -> anyhow::Result<String> {
+    let ret = match (&opts.replacing, &opts.from) {
+        (Replacing::Prefix(pattern), _) => format!("{pattern}{orig}"),
+        (Replacing::Suffix(pattern), _) => format!("{orig}{pattern}"),
+        (Replacing::All, FromPattern::Literal(from)) => {
+            orig.replace(from, opts.to.as_deref().context("missing 'to'")?)
         }
-        (Replacing::Indices(indices), FromPattern::Regex(rx)) => {
-            replace_nth_rx(orig, rx, &opts.to, indices)
-        }
-    }
+        (Replacing::All, FromPattern::Regex(rx)) => rx
+            .replacen(orig, 0, opts.to.as_deref().context("missing 'to'")?)
+            .to_string(),
+        (Replacing::Indices(indices), FromPattern::Literal(from)) => replace_nth_literal(
+            orig,
+            from,
+            opts.to.as_deref().context("missing 'to'")?,
+            indices,
+        ),
+        (Replacing::Indices(indices), FromPattern::Regex(rx)) => replace_nth_rx(
+            orig,
+            rx,
+            opts.to.as_deref().context("missing 'to'")?,
+            indices,
+        ),
+    };
+
+    Ok(ret)
 }
 
 fn replace_nth_literal(orig: &str, from: &str, to: &str, indices: &[usize]) -> String {
@@ -74,10 +91,11 @@ mod test {
                 "this_name_is_fine.txt",
                 &RenameOpts {
                     from: FromPattern::Literal("bad".to_owned()),
-                    to: "right".to_owned(),
+                    to: Some("right".to_owned()),
                     replacing: Replacing::Indices(vec![1])
                 }
             )
+            .unwrap()
         );
     }
 
@@ -89,10 +107,11 @@ mod test {
                 "this_name_is_also_fine.txt",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("poor").unwrap().to_owned()),
-                    to: "better".to_owned(),
+                    to: Some("better".to_owned()),
                     replacing: Replacing::Indices(vec![1])
                 }
             )
+            .unwrap()
         );
     }
 
@@ -104,10 +123,11 @@ mod test {
                 "this_name_is_the_wrong_name.txt",
                 &RenameOpts {
                     from: FromPattern::Literal("name".to_owned()),
-                    to: "also".to_owned(),
+                    to: Some("also".to_owned()),
                     replacing: Replacing::Indices(vec![0])
                 }
             )
+            .unwrap()
         );
     }
 
@@ -119,10 +139,11 @@ mod test {
                 "this_name_is_the_wrong_name.txt",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("(n[^_]+)").unwrap().to_owned()),
-                    to: "still".to_owned(),
+                    to: Some("still".to_owned()),
                     replacing: Replacing::Indices(vec![0])
                 }
             )
+            .unwrap()
         );
     }
 
@@ -134,10 +155,11 @@ mod test {
                 "this_name_is_the_wrong_name.txt",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("n[a-z][a-z]e").unwrap().to_owned()),
-                    to: "file".to_owned(),
+                    to: Some("file".to_owned()),
                     replacing: Replacing::All,
                 }
             )
+            .unwrap()
         );
     }
 
@@ -149,10 +171,11 @@ mod test {
                 "who.puts.dots.in.filenames",
                 &RenameOpts {
                     from: FromPattern::Literal(".".to_owned()),
-                    to: "-".to_owned(),
+                    to: Some("-".to_owned()),
                     replacing: Replacing::All,
                 }
             )
+            .unwrap()
         );
     }
 
@@ -164,10 +187,11 @@ mod test {
                 "one_word",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("one_(\\w*)").unwrap()),
-                    to: "two_${1}s".to_owned(),
+                    to: Some("two_${1}s".to_owned()),
                     replacing: Replacing::Indices(vec![0])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -176,10 +200,11 @@ mod test {
                 "two_dogs_and_a_cat",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("(dog)(.*)(cat)").unwrap()),
-                    to: "${3}${2}${1}".to_owned(),
+                    to: Some("${3}${2}${1}".to_owned()),
                     replacing: Replacing::Indices(vec![0])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -188,10 +213,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("wo(..)").unwrap()),
-                    to: "ne${1}".to_owned(),
+                    to: Some("ne${1}".to_owned()),
                     replacing: Replacing::All,
                 }
             )
+            .unwrap()
         );
     }
 
@@ -203,10 +229,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("w[a-z][a-z]d").unwrap().to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![1])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -215,10 +242,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("w[a-z][a-z]d").unwrap().to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![5])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -227,10 +255,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("w[a-z][a-z]d").unwrap().to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![0, 2])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -239,10 +268,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Regex(Regex::new("w[a-z][a-z]d").unwrap().to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![9])
                 }
             )
+            .unwrap()
         );
     }
 
@@ -254,10 +284,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Literal("word".to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![1])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -266,10 +297,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Literal("word".to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![0, 2])
                 }
             )
+            .unwrap()
         );
 
         assert_eq!(
@@ -278,10 +310,11 @@ mod test {
                 "word_word_word",
                 &RenameOpts {
                     from: FromPattern::Literal("word".to_owned()),
-                    to: "new".to_owned(),
+                    to: Some("new".to_owned()),
                     replacing: Replacing::Indices(vec![9])
                 }
             )
+            .unwrap()
         );
     }
 
@@ -293,10 +326,11 @@ mod test {
                 "start.middle.end",
                 &RenameOpts {
                     from: FromPattern::Literal("middle.".to_owned()),
-                    to: String::new(),
+                    to: Some(String::new()),
                     replacing: Replacing::Indices(vec![0])
                 }
             )
+            .unwrap()
         );
     }
 }
