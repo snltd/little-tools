@@ -1,0 +1,50 @@
+name: Rust Tests
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - "**/*.rs"
+      - .github/workflows/rust-tests.yml
+  pull_request:
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - "**/*.rs"
+      - .github/workflows/rust-tests.yml
+
+concurrency:
+  group: test-rust
+  cancel-in-progress: true
+
+jobs:
+  rust-tests:
+    name: Rust Tests
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # 6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Set up Rust
+        uses: hecrj/setup-rust-action@110f36749599534ca96628b82f52ae67e5d95a3c # 2.0.1
+        with:
+          rust-version: stable
+      - name: Do a Clippy
+        run: cargo clippy
+      - name: Run Rust Tests
+        run: cargo test -- --include-ignored --nocapture
