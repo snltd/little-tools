@@ -18,14 +18,14 @@ pub struct ActionOpts {
 /// not go in the list.
 pub fn action_list(
     paths: Vec<Utf8PathBuf>,
-    include_ext: bool,
+    exclude_ext: bool,
     extension: Option<String>,
     rename_opts: &RenameOpts,
 ) -> anyhow::Result<Vec<(Utf8PathBuf, Utf8PathBuf)>> {
     let mut ret: Vec<(Utf8PathBuf, Utf8PathBuf)> = Vec::new();
 
     for path in paths {
-        let new_path = new_path(&path, include_ext, extension.as_deref(), rename_opts)?;
+        let new_path = new_path(&path, exclude_ext, extension.as_deref(), rename_opts)?;
 
         if path != new_path {
             ret.push((path.to_owned(), new_path));
@@ -58,7 +58,7 @@ pub fn check_action_list(action_list: &Vec<(Utf8PathBuf, Utf8PathBuf)>) -> anyho
 
 pub fn new_path(
     path: &Utf8Path,
-    include_ext: bool,
+    exclude_ext: bool,
     extension: Option<&str>,
     rename_opts: &RenameOpts,
 ) -> anyhow::Result<Utf8PathBuf> {
@@ -70,8 +70,8 @@ pub fn new_path(
         .parent()
         .with_context(|| format!("cannot get parent of {source}"))?;
 
-    let (source_stem, source_ext) = file_parts(&source, include_ext, extension)?;
-    let new_name = replace::new_name(source_stem, rename_opts);
+    let (source_stem, source_ext) = file_parts(&source, exclude_ext, extension)?;
+    let new_name = replace::new_name(source_stem, rename_opts)?;
 
     let new_filename = if let Some(ext) = source_ext {
         format!("{new_name}.{ext}")
@@ -84,14 +84,14 @@ pub fn new_path(
 
 fn file_parts<'a>(
     path: &'a Utf8Path,
-    include_ext: bool,
+    exclude_ext: bool,
     extension: Option<&'a str>,
 ) -> anyhow::Result<(&'a str, Option<&'a str>)> {
     let source_name = path
         .file_name()
         .with_context(|| format!("cannot get filename of {path}"))?;
 
-    let (source_name, mut ext) = if include_ext {
+    let (source_name, mut ext) = if exclude_ext {
         (source_name, None)
     } else {
         if let Some(ext) = path.extension() {
@@ -177,7 +177,7 @@ mod test {
             None,
             &RenameOpts {
                 from: (FromPattern::Literal("in".into())),
-                to: "out".into(),
+                to: Some("out".into()),
                 replacing: Replacing::All,
             },
         )
@@ -213,7 +213,7 @@ mod test {
             None,
             &RenameOpts {
                 from: (FromPattern::Literal(".recoded".into())),
-                to: "".into(),
+                to: Some("".into()),
                 replacing: Replacing::All,
             },
         )
@@ -315,7 +315,7 @@ mod test {
             None,
             &RenameOpts {
                 from: (FromPattern::Literal("in".into())),
-                to: "out".into(),
+                to: Some("out".into()),
                 replacing: Replacing::All,
             },
         )

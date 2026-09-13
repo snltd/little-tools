@@ -2,7 +2,7 @@ mod action;
 mod replace;
 
 use camino::Utf8PathBuf;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use regex::Regex;
 use std::process;
 
@@ -24,9 +24,22 @@ struct Cli {
     /// overwrite any existing files
     #[clap(short, long)]
     clobber: bool,
-    /// include the filename extension in replacements
+    /// exclude the filename extension from replacements
     #[clap(short, long)]
-    include_ext: bool,
+    exclude_ext: bool,
+    /// insert TO before every file name instead of replacing
+    #[clap(
+        short = 'P',
+        long,
+        conflicts_with_all = [ "suffix", "replace_nth", "replace_all", "exclude_ext", "extension"] )]
+    prefix: bool,
+    /// add TO to the end of every file name instead of replacing
+    #[clap(
+        short = 'S',
+        long,
+        conflicts_with_all = ["prefix", "replace_nth", "replace_all", "exclude_ext", "extension"]
+    )]
+    suffix: bool,
     /// set extension to given arg
     #[clap(short = 'E', long)]
     extension: Option<String>,
@@ -50,22 +63,48 @@ struct Cli {
     /// print arguments for git mv
     #[clap(short = 'G', long = "git", conflicts_with = "noop")]
     git: bool,
-    /// pattern to replace. Supports Rust regexes
+    /// pattern to replace, which can be a Rust regex. Or string for prefix or suffix
     #[clap(value_parser)]
-    from: String,
-    /// string that should replace <pattern>. Supports Rust capture groups, like ${1}
-    #[clap(value_parser)]
-    to: String,
-    /// files to rename
-    #[arg(required = true)]
-    files: Vec<Utf8PathBuf>,
+    pattern: String,
+    /// string that should replace <PATTERN> (unless --prefix/--suffix), then files to rename
+    #[arg(required = true, value_parser)]
+    rest: Vec<Utf8PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let mut ret = 0;
 
-    let replacing = if cli.replace_all {
+    let (to, files): (Option<String>, Vec<Utf8PathBuf>) = if cli.prefix || cli.suffix {
+        (None, cli.rest.clone())
+    } else {
+        let mut rest = cli.rest.clone();
+        if rest.is_empty() {
+            Cli::command()
+                .error(
+                    clap::error::ErrorKind::MissingRequiredArgument,
+                    "the following required arguments were not provided:\n  <TO>\n  <FILES>...",
+                )
+                .exit();
+        }
+        let to = rest.remove(0).into_string();
+        (Some(to), rest)
+    };
+
+    if files.is_empty() {
+        Cli::command()
+            .error(
+                clap::error::ErrorKind::MissingRequiredArgument,
+                "the following required arguments were not provided:\n  <FILES>...",
+            )
+            .exit();
+    }
+
+    let replacing = if cli.suffix {
+        Replacing::Suffix(cli.pattern.clone())
+    } else if cli.prefix {
+        Replacing::Prefix(cli.pattern.clone())
+    } else if cli.replace_all {
         Replacing::All
     } else if cli.replace_nth.is_empty() {
         Replacing::Indices(vec![0])
@@ -73,32 +112,32 @@ fn main() -> anyhow::Result<()> {
         Replacing::Indices(cli.replace_nth)
     };
 
-    let from = if cli.literal {
-        FromPattern::Literal(cli.from.clone())
+    let pattern = if cli.literal {
+        FromPattern::Literal(cli.pattern.clone())
     } else {
-        match Regex::new(&cli.from) {
+        match Regex::new(&cli.pattern) {
             Ok(rx) => FromPattern::Regex(rx),
             Err(e) => {
-                eprintln!("ERROR compiling regex {}: {e:#}", cli.from);
+                eprintln!("ERROR compiling regex {}: {e:#}", cli.pattern);
                 process::exit(2);
             }
         }
     };
 
     let rename_opts = RenameOpts {
-        from,
-        to: cli.to,
+        from: pattern,
+        to,
         replacing,
     };
 
-    let action_list =
-        match action::action_list(cli.files, cli.include_ext, cli.extension, &rename_opts) {
-            Ok(list) => list,
-            Err(e) => {
-                eprintln!("ERROR: {e:#}");
-                process::exit(3);
-            }
-        };
+    let action_list = match action::action_list(files, cli.exclude_ext, cli.extension, &rename_opts)
+    {
+        Ok(list) => list,
+        Err(e) => {
+            eprintln!("ERROR: {e:#}");
+            process::exit(3);
+        }
+    };
 
     // If we don't think we can rename everything, we'll rename nothing
     if let Err(e) = action::check_action_list(&action_list) {

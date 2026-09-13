@@ -42,4 +42,18 @@ mod test {
             .failure()
             .stderr("ERROR: cannot canonicalize /no/such/file: No such file or directory (os error 2)\n");
     }
+
+    #[test]
+    #[ignore]
+    fn test_mmv_prefix_and_suffix() {
+        cargo_bin_cmd!("mmv")
+            .arg("--prefix")
+            .arg("--suffix")
+            .arg("pattern")
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains(
+                "the argument '--prefix' cannot be used with '--suffix'",
+            ));
+    }
 }
