@@ -16,26 +16,26 @@ use std::process;
 #[command(about = "Batch renamer.")]
 struct Cli {
     /// Print the rename operations without doing them
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     noop: bool,
     /// With --noop, only print target names
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     terse: bool,
     /// Overwrite any existing files
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     clobber: bool,
     /// Print every operation
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     verbose: bool,
     /// Show fully qualified pathnames in verbose output
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     full: bool,
     /// Include the filename extension from operations. Normally mmv operates only on the stem
     /// part of the filename
-    #[arg(short, long)]
+    #[arg(short = 'e', long, global = true)]
     include_ext: bool,
     /// Print arguments for `git mv`
-    #[clap(short = 'G', long = "git", conflicts_with = "noop")]
+    #[clap(short = 'G', long = "git", global = true, conflicts_with = "noop")]
     git: bool,
 
     #[command(subcommand)]

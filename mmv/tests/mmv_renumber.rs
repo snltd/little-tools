@@ -19,16 +19,17 @@ mod test {
         assert!(!after_2.exists());
 
         cargo_bin_cmd!("mmv")
-            .arg("--bump-number=0")
-            .arg("2")
+            .arg("renumber")
+            .arg("--index=0")
+            .arg("--up=2")
             .arg(&before_1)
-            //     .arg(&before_2)
+            .arg(&before_2)
             .assert()
             .success();
 
-        // assert!(!before_1.exists());
-        // assert!(!before_2.exists());
-        // assert!(after_1.exists());
-        // assert!(after_2.exists());
+        assert!(!before_1.exists());
+        assert!(!before_2.exists());
+        assert!(after_1.exists());
+        assert!(after_2.exists());
     }
 }

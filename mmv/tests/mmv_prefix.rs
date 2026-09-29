@@ -20,7 +20,7 @@ mod test {
         assert!(!after_2.exists());
 
         cargo_bin_cmd!("mmv")
-            .arg("--prefix")
+            .arg("prefix")
             .arg("new_")
             .arg(test_dir.join("file1.txt"))
             .arg(test_dir.join("file2.txt"))
@@ -49,7 +49,7 @@ mod test {
         assert!(!after_1.exists());
 
         cargo_bin_cmd!("mmv")
-            .arg("--suffix")
+            .arg("suffix")
             .arg("_new")
             .arg(test_dir.join("file1.txt"))
             .assert()

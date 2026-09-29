@@ -20,6 +20,7 @@ mod test {
         assert!(!after_2.exists());
 
         cargo_bin_cmd!("mmv")
+            .arg("replace")
             .arg("--verbose")
             .arg("before")
             .arg("after")
@@ -61,6 +62,7 @@ mod test {
 
         cargo_bin_cmd!("mmv")
             .arg("--verbose")
+            .arg("replace")
             .arg("before")
             .arg("after")
             .arg(test_dir.join("before_001.txt"))
@@ -100,6 +102,7 @@ mod test {
 
         cargo_bin_cmd!("mmv")
             .arg("--verbose")
+            .arg("replace")
             .arg("before")
             .arg("after")
             .arg("*")
@@ -138,6 +141,7 @@ mod test {
 
         cargo_bin_cmd!("mmv")
             .arg("--clobber")
+            .arg("replace")
             .arg(".recoded")
             .arg("")
             .arg(&wanted_1)
@@ -179,6 +183,7 @@ mod test {
         assert!(after_2.exists());
 
         cargo_bin_cmd!("mmv")
+            .arg("replace")
             .arg("--clobber")
             .arg("before")
             .arg("after")
