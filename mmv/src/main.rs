@@ -1,137 +1,206 @@
 mod action;
-mod replace;
+mod action_list;
+mod new_name;
+mod types;
 
+use crate::action_list::ActionList;
+use crate::types::{
+    GlobalOpts, RenameAction, RenumberOpts, ReplaceLiteralOpts, ReplaceRegexOpts, Replacements,
+};
 use camino::Utf8PathBuf;
-use clap::{CommandFactory, Parser};
+use clap::{Parser, Subcommand};
 use regex::Regex;
 use std::process;
 
-use crate::replace::{FromPattern, RenameOpts, Replacing};
-use action::ActionOpts;
-
-#[derive(Parser, Debug)]
-#[clap(version, about = "Batch renamer", long_about = None)]
+#[derive(Parser)]
+#[command(about = "Batch renamer.")]
 struct Cli {
-    /// treat PATTERN as a literal string rather than a regex pattern
-    #[clap(short, long)]
-    literal: bool,
-    /// replace all occurrences of PATTERN
-    #[clap(short = 'a', long = "all", conflicts_with = "replace_nth")]
-    replace_all: bool,
-    /// print the rename operations without doing them
-    #[clap(short, long)]
+    /// Print the rename operations without doing them
+    #[arg(short, long, global = true)]
     noop: bool,
-    /// overwrite any existing files
-    #[clap(short, long)]
+    /// With --noop, only print target names
+    #[arg(short, long, global = true)]
+    terse: bool,
+    /// Overwrite any existing files
+    #[arg(short, long, global = true)]
     clobber: bool,
-    /// exclude the filename extension from replacements
-    #[clap(short, long)]
-    exclude_ext: bool,
-    /// insert TO before every file name instead of replacing
-    #[clap(
-        short = 'P',
-        long,
-        conflicts_with_all = [ "suffix", "replace_nth", "replace_all", "exclude_ext", "extension"] )]
-    prefix: bool,
-    /// add TO to the end of every file name instead of replacing
-    #[clap(
-        short = 'S',
-        long,
-        conflicts_with_all = ["prefix", "replace_nth", "replace_all", "exclude_ext", "extension"]
-    )]
-    suffix: bool,
-    /// set extension to given arg
-    #[clap(short = 'E', long)]
-    extension: Option<String>,
-    /// show fully qualified pathnames in verbose output
-    #[clap(short, long = "full")]
-    full_names: bool,
-    /// only replace the nth match (starts at 0)
-    #[clap(
-        short = 'm',
-        long = "match",
-        conflicts_with = "replace_all",
-        value_parser
-    )]
-    replace_nth: Vec<usize>,
-    /// with -n, only print target names
-    #[clap(short, long = "terse")]
-    terse_output: bool,
-    /// be verbose
-    #[clap(short, long)]
+    /// Print every operation
+    #[arg(short, long, global = true)]
     verbose: bool,
-    /// print arguments for git mv
-    #[clap(short = 'G', long = "git", conflicts_with = "noop")]
+    /// Show fully qualified pathnames in verbose output
+    #[arg(short, long, global = true)]
+    full: bool,
+    /// Include the filename extension from operations. Normally mmv operates only on the stem
+    /// part of the filename
+    #[arg(short = 'e', long, global = true)]
+    include_ext: bool,
+    /// Print arguments for `git mv`
+    #[clap(short = 'G', long = "git", global = true, conflicts_with = "noop")]
     git: bool,
-    /// pattern to replace, which can be a Rust regex. Or string for prefix or suffix
-    #[clap(value_parser)]
-    pattern: String,
-    /// string that should replace <PATTERN> (unless --prefix/--suffix), then files to rename
-    #[arg(required = true, value_parser)]
-    rest: Vec<Utf8PathBuf>,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Rename multiple files with find/replace.
+    #[command(alias = "r")]
+    Replace {
+        /// Replace nth occurrence of FROM. Zero-indexed, and can be specified multiple times
+        #[arg(
+            short = 'N',
+            long = "replace-nth",
+            value_parser,
+            conflicts_with = "replace_all"
+        )]
+        index: Vec<usize>,
+        /// Replace all occurrences of FROM. If neither --replace-all nor --replace-nth are
+        /// supplied, the first match will be replaced
+        #[arg(short = 'a', long)]
+        replace_all: bool,
+        /// Treat FROM as a literal string rather than a regex pattern
+        #[arg(short, long)]
+        literal: bool,
+        /// Pattern to replace, which can be a Rust regex unless --literal is specified
+        from: String,
+        /// String with which to replace FROM. If FROM is a regex with capture groups, TO can
+        /// use backreferences
+        to: String,
+        /// One or more files
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// Prefix filename(s) with a given string.
+    Prefix {
+        /// Prefix to use. It is joined directly to the start of the filename, with no separator
+        prefix: String,
+        /// One or more files
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// Suffix filename(s) with a given string
+    Suffix {
+        /// Suffix to use. Unless --include-ext is used, it will be added BEFORE the file
+        /// extension. The join is direct, with no separator.
+        suffix: String,
+        /// One or more files
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// Change the extension of one or more files
+    Extension {
+        /// New extension. If the file has no extension, one will be added
+        extension: String,
+        /// One or more files
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// Change the value of the nth number in one or more filename(s)
+    Renumber {
+        /// Which number to change. Numbers are any distinct, greedy, \d+ match
+        #[arg(short, long, required = true)]
+        index: Option<usize>,
+        /// Increment the number by this amount
+        #[arg(short, long, conflicts_with = "down")]
+        up: Option<i64>,
+        /// Decrement the number by this amount
+        #[arg(short, long)]
+        down: Option<i64>,
+        /// One or more files
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let mut ret = 0;
 
-    let (to, files): (Option<String>, Vec<Utf8PathBuf>) = if cli.prefix || cli.suffix {
-        (None, cli.rest.clone())
-    } else {
-        let mut rest = cli.rest.clone();
-        if rest.is_empty() {
-            Cli::command()
-                .error(
-                    clap::error::ErrorKind::MissingRequiredArgument,
-                    "the following required arguments were not provided:\n  <TO>\n  <FILES>...",
+    let global_opts = GlobalOpts {
+        noop: cli.noop,
+        terse: cli.terse,
+        verbose: cli.verbose,
+        clobber: cli.clobber,
+        full: cli.full,
+        include_ext: cli.include_ext,
+        git: cli.git,
+    };
+
+    let (rename_action, files) = match cli.command {
+        Commands::Replace {
+            literal,
+            replace_all,
+            index,
+            from,
+            to,
+            files,
+        } => {
+            let replacements = if replace_all {
+                Replacements::All
+            } else if index.is_empty() {
+                Replacements::Indices(vec![0])
+            } else {
+                Replacements::Indices(index)
+            };
+
+            if literal {
+                (
+                    RenameAction::ReplaceLiteral(ReplaceLiteralOpts {
+                        replacements,
+                        from,
+                        to,
+                    }),
+                    files,
                 )
-                .exit();
-        }
-        let to = rest.remove(0).into_string();
-        (Some(to), rest)
-    };
+            } else {
+                let from = match Regex::new(&from) {
+                    Ok(rx) => rx,
+                    Err(e) => {
+                        eprintln!("ERROR compiling regex {}: {e:#}", from);
+                        process::exit(2);
+                    }
+                };
 
-    if files.is_empty() {
-        Cli::command()
-            .error(
-                clap::error::ErrorKind::MissingRequiredArgument,
-                "the following required arguments were not provided:\n  <FILES>...",
-            )
-            .exit();
-    }
-
-    let replacing = if cli.suffix {
-        Replacing::Suffix(cli.pattern.clone())
-    } else if cli.prefix {
-        Replacing::Prefix(cli.pattern.clone())
-    } else if cli.replace_all {
-        Replacing::All
-    } else if cli.replace_nth.is_empty() {
-        Replacing::Indices(vec![0])
-    } else {
-        Replacing::Indices(cli.replace_nth)
-    };
-
-    let pattern = if cli.literal {
-        FromPattern::Literal(cli.pattern.clone())
-    } else {
-        match Regex::new(&cli.pattern) {
-            Ok(rx) => FromPattern::Regex(rx),
-            Err(e) => {
-                eprintln!("ERROR compiling regex {}: {e:#}", cli.pattern);
-                process::exit(2);
+                (
+                    RenameAction::ReplaceRegex(ReplaceRegexOpts {
+                        replacements,
+                        from,
+                        to,
+                    }),
+                    files,
+                )
             }
         }
+        Commands::Prefix {
+            prefix: text,
+            files,
+        } => (RenameAction::Prefix(text), files),
+        Commands::Suffix {
+            suffix: text,
+            files,
+        } => (RenameAction::Suffix(text), files),
+        Commands::Extension { extension, files } => (RenameAction::Extension(extension), files),
+        Commands::Renumber {
+            index,
+            up,
+            down,
+            files,
+        } => {
+            let by: i64 = if let Some(val) = up {
+                val
+            } else if let Some(val) = down {
+                -val
+            } else {
+                panic!("NOOOOO!");
+            };
+
+            let index = index.unwrap_or(1);
+
+            (RenameAction::Renumber(RenumberOpts { by, index }), files)
+        }
     };
 
-    let rename_opts = RenameOpts {
-        from: pattern,
-        to,
-        replacing,
-    };
-
-    let action_list = match action::action_list(files, cli.exclude_ext, cli.extension, &rename_opts)
-    {
+    let action_list = match ActionList::new(files, &rename_action, &global_opts) {
         Ok(list) => list,
         Err(e) => {
             eprintln!("ERROR: {e:#}");
@@ -140,26 +209,16 @@ fn main() -> anyhow::Result<()> {
     };
 
     // If we don't think we can rename everything, we'll rename nothing
-    if let Err(e) = action::check_action_list(&action_list) {
+    if let Err(e) = action_list.check() {
         eprintln!("ERROR: {e:#}");
         process::exit(4);
     }
 
-    let action_opts = ActionOpts {
-        clobber: cli.clobber,
-        full_names: cli.full_names,
-        git: cli.git,
-        noop: cli.noop,
-        terse_output: cli.terse_output,
-        verbose: cli.verbose,
-    };
-
-    for (src, target) in &action_list {
-        if let Err(e) = action::rename_file(src, target, &action_opts) {
-            ret = 1;
-            eprintln!("ERROR renaming {src} -> {target}: {e:#}");
-        }
+    // Again, first fail -- exit
+    if let Err(e) = action_list.rename(&global_opts) {
+        eprintln!("ERROR: {e:#}");
+        process::exit(1);
     }
 
-    process::exit(ret)
+    process::exit(0)
 }
