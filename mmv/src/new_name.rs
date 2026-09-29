@@ -30,7 +30,12 @@ fn replace_extension(orig: &str, ext: &str) -> String {
     new.to_string()
 }
 
-fn replace_nth_number(orig: &str, index: usize, by: i64) -> anyhow::Result<String> {
+fn replace_nth_number(
+    orig: &str,
+    index: usize,
+    by: i64,
+    zeros: Option<u8>,
+) -> anyhow::Result<String> {
     // Just do the regex every time. It won't matter.
     let rx = Regex::new(r"\d+").context("impossible regex error")?;
     let matches: Vec<_> = rx.find_iter(orig).collect();
@@ -41,7 +46,17 @@ fn replace_nth_number(orig: &str, index: usize, by: i64) -> anyhow::Result<Strin
         let new_val = orig_val + by;
 
         ret.push_str(&orig[..m.start()]);
-        ret.push_str(&new_val.to_string());
+
+        if let Some(pad) = zeros {
+            ret.push_str(&format!(
+                "{0:pad$}",
+                new_val.to_string(),
+                pad = pad as usize
+            ));
+        } else {
+            ret.push_str(&new_val.to_string());
+        }
+
         ret.push_str(&orig[m.end()..]);
 
         Ok(ret)

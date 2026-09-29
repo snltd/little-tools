@@ -39,6 +39,7 @@ pub struct ReplaceRegexOpts {
 pub struct RenumberOpts {
     pub index: usize,
     pub by: i64,
+    pub zeros: Option<u8>,
 }
 
 #[derive(Debug)]
