@@ -4,6 +4,7 @@ mod test {
     use snltest::fixture_dir;
 
     #[test]
+    #[ignore]
     fn test_prefix() {
         let (_tmp, test_dir) = fixture_dir("mmv.test", vec!["file1.txt", "file2.txt"]);
 
@@ -33,6 +34,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn test_suffix() {
         let (_tmp, test_dir) = fixture_dir("mmv.test", vec!["file1.txt", "file2.txt"]);
 

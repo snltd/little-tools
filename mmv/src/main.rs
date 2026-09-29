@@ -1,82 +1,138 @@
 mod action;
-mod replace;
+mod new_name;
 
 use camino::Utf8PathBuf;
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, Parser, Subcommand};
 use regex::Regex;
 use std::process;
 
 use crate::replace::{FromPattern, RenameOpts, Replacing};
 use action::ActionOpts;
 
-#[derive(Parser, Debug)]
-#[clap(version, about = "Batch renamer", long_about = None)]
+#[derive(Parser)]
+#[command(about = "Batch renamer")]
 struct Cli {
-    /// treat PATTERN as a literal string rather than a regex pattern
-    #[clap(short, long)]
-    literal: bool,
-    /// replace all occurrences of PATTERN
-    #[clap(short = 'a', long = "all", conflicts_with = "replace_nth")]
-    replace_all: bool,
     /// print the rename operations without doing them
-    #[clap(short, long)]
+    #[arg(short, long)]
     noop: bool,
+    /// with --noop, only print target names
+    #[arg(short, long)]
+    terse: bool,
     /// overwrite any existing files
-    #[clap(short, long)]
+    #[arg(short, long)]
     clobber: bool,
-    /// exclude the filename extension from replacements
-    #[clap(short, long)]
-    exclude_ext: bool,
-    /// insert TO before every file name instead of replacing
-    #[clap(
-        short = 'P',
-        long,
-        conflicts_with_all = [ "suffix", "replace_nth", "replace_all", "exclude_ext", "extension"] )]
-    prefix: bool,
-    /// add TO to the end of every file name instead of replacing
-    #[clap(
-        short = 'S',
-        long,
-        conflicts_with_all = ["prefix", "replace_nth", "replace_all", "exclude_ext", "extension"]
-    )]
-    suffix: bool,
-    /// set extension to given arg
-    #[clap(short = 'E', long)]
-    extension: Option<String>,
-    /// show fully qualified pathnames in verbose output
-    #[clap(short, long = "full")]
-    full_names: bool,
-    /// only replace the nth match (starts at 0)
-    #[clap(
-        short = 'm',
-        long = "match",
-        conflicts_with = "replace_all",
-        value_parser
-    )]
-    replace_nth: Vec<usize>,
-    /// with -n, only print target names
-    #[clap(short, long = "terse")]
-    terse_output: bool,
-    /// be verbose
-    #[clap(short, long)]
+    /// print every operation
+    #[arg(short, long)]
     verbose: bool,
-    /// print arguments for git mv
+    /// show fully qualified pathnames in verbose output
+    #[arg(short, long)]
+    full: bool,
+    /// exclude the filename extension from operations
+    #[arg(short, long)]
+    exclude_ext: bool,
+    /// print arguments for `git mv`
     #[clap(short = 'G', long = "git", conflicts_with = "noop")]
     git: bool,
-    /// pattern to replace, which can be a Rust regex. Or string for prefix or suffix
-    #[clap(value_parser)]
-    pattern: String,
-    /// string that should replace <PATTERN> (unless --prefix/--suffix), then files to rename
-    #[arg(required = true, value_parser)]
-    rest: Vec<Utf8PathBuf>,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    #[command(alias = "r")]
+    Replace {
+        /// treat FROM as a literal string rather than a regex pattern
+        #[arg(short = 'l', long)]
+        literal: bool,
+        /// replace all occurrences of FROM
+        #[arg(short = 'a', long = "all", conflicts_with = "replace_nth")]
+        replace_all: bool,
+        /// replace nth occurrence of FROM. Zero-indexed, can be specified multiple times
+        #[arg(
+            short = 'm',
+            long = "match",
+            conflicts_with = "replace_all",
+            value_parser
+        )]
+        nth: Vec<usize>,
+        /// pattern to replace, which can be a Rust regex unless --literal is specified
+        from: String,
+        /// string with which to replace FROM
+        to: String,
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// prefix filename(s) instead of replacing
+    Prefix {
+        text: String,
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// suffix filename(s) instead of replacing
+    Suffix {
+        text: String,
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// change the extension
+    Ext {
+        ext: String,
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+    /// change the value of the Nth number in the name, instead of replacing
+    Number {
+        #[arg(short, long)]
+        up: i64,
+        #[arg(short, long)]
+        down: i64,
+        #[arg(required = true)]
+        files: Vec<Utf8PathBuf>,
+    },
+}
+
+struct GlobalOpts {
+    noop: bool,
+    terse: bool,
+    verbose: bool,
+    clobber: bool,
+    full: bool,
+    exclude_ext: bool,
+    git: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
+    let globals = GlobalOpts {
+        noop: cli.noop,
+        terse: cli.terse,
+        verbose: cli.verbose,
+        clobber: cli.clobber,
+        full: cli.full,
+        exclude_ext: cli.exclude_ext,
+        git: cli.git,
+    };
+
     let mut ret = 0;
 
-    let (to, files): (Option<String>, Vec<Utf8PathBuf>) = if cli.prefix || cli.suffix {
-        (None, cli.rest.clone())
+    let (to, files): (Option<String>, Vec<Utf8PathBuf>) = match cli.command {
+        Commands::Replace {
+            literal,
+            replace_all,
+            nth,
+            from,
+            to,
+            files,
+        } => {}
+        Commands::Prefix { text, files } => (None, cli.rest.clone()),
+        Commands::Suffix { text, files } => {}
+        Commands::Ext { ext, files } => {}
+        Commands::Number { up, down, files } => {}
+    };
+
+    if cli.prefix || cli.suffix {
     } else {
         let mut rest = cli.rest.clone();
         if rest.is_empty() {
@@ -108,6 +164,8 @@ fn main() -> anyhow::Result<()> {
         Replacing::All
     } else if cli.replace_nth.is_empty() {
         Replacing::Indices(vec![0])
+    } else if let Some(rn) = cli.bump_number {
+        Replacing::Renumber(rn)
     } else {
         Replacing::Indices(cli.replace_nth)
     };

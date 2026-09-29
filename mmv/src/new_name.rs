@@ -7,12 +7,14 @@ pub enum Replacing {
     Indices(Vec<usize>),
     Prefix(String),
     Suffix(String),
+    Renumber(usize),
 }
 
 #[derive(Debug)]
 pub enum FromPattern {
     Literal(String),
     Regex(Regex),
+    Renumber(i64),
 }
 
 #[derive(Debug)]
@@ -20,6 +22,10 @@ pub struct RenameOpts {
     pub from: FromPattern,
     pub to: Option<String>,
     pub replacing: Replacing,
+}
+
+pub fn prefix(orig: &str, prefix: &str) -> String {
+    format!("{prefix}{orig}")
 }
 
 pub fn new_name(orig: &str, opts: &RenameOpts) -> anyhow::Result<String> {
@@ -44,9 +50,34 @@ pub fn new_name(orig: &str, opts: &RenameOpts) -> anyhow::Result<String> {
             opts.to.as_deref().context("missing 'to'")?,
             indices,
         ),
+        (Replacing::Renumber(index, by), _) => replace_nth_number(orig, *index, by)?,
     };
 
     Ok(ret)
+}
+
+fn replace_nth_number(orig: &str, index: usize, by: &str) -> anyhow::Result<String> {
+    let by = by
+        .parse::<i64>()
+        .with_context(|| format!("first argument must be a number. (Got {by})"))?;
+
+    // Just do the regex every time. It won't matter.
+    let rx = Regex::new(r"\d+").context("impossible regex error")?;
+    let matches: Vec<_> = rx.find_iter(orig).collect();
+    let mut ret = String::new();
+
+    if let Some(m) = matches.get(index) {
+        let orig_val = m.as_str().parse::<i64>()?;
+        let new_val = orig_val + by;
+
+        ret.push_str(&orig[..m.start()]);
+        ret.push_str(&new_val.to_string());
+        ret.push_str(&orig[m.end()..]);
+
+        Ok(ret)
+    } else {
+        Ok(orig.to_owned())
+    }
 }
 
 fn replace_nth_literal(orig: &str, from: &str, to: &str, indices: &[usize]) -> String {
@@ -82,6 +113,28 @@ fn replace_nth_rx(orig: &str, from: &Regex, to: &str, indices: &[usize]) -> Stri
 #[cfg(test)]
 mod test {
     use super::*;
+    #[test]
+    fn test_replace_nth_number() {
+        assert_eq!(
+            "no_numbers_here".to_owned(),
+            replace_nth_number("no_numbers_here", 1, "1").unwrap()
+        );
+
+        assert_eq!(
+            "make_mine_a_99".to_owned(),
+            replace_nth_number("make_mine_a_98", 0, "1").unwrap()
+        );
+
+        assert_eq!(
+            "make_mine_a_99.flac".to_owned(),
+            replace_nth_number("make_mine_a_100.flac", 0, "-1").unwrap()
+        );
+
+        assert_eq!(
+            "make_mine_a_99".to_owned(),
+            replace_nth_number("make_mine_a_99", 2, "1").unwrap()
+        );
+    }
 
     #[test]
     fn test_no_change_literal() {
