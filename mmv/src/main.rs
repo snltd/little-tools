@@ -1,5 +1,5 @@
-mod action;
 mod action_list;
+mod mv;
 mod new_name;
 mod types;
 
@@ -107,6 +107,9 @@ enum Commands {
         /// Decrement the number by this amount
         #[arg(short, long)]
         down: Option<i64>,
+        /// Pad altered numbers with leading zeros. Value is the number of chars to pad to
+        #[arg(short, long)]
+        zeros: Option<u8>,
         /// One or more files
         #[arg(required = true)]
         files: Vec<Utf8PathBuf>,
@@ -185,6 +188,7 @@ fn main() -> anyhow::Result<()> {
             up,
             down,
             files,
+            zeros,
         } => {
             let by: i64 = if let Some(val) = up {
                 val
@@ -196,7 +200,10 @@ fn main() -> anyhow::Result<()> {
 
             let index = index.unwrap_or(1);
 
-            (RenameAction::Renumber(RenumberOpts { by, index }), files)
+            (
+                RenameAction::Renumber(RenumberOpts { by, index, zeros }),
+                files,
+            )
         }
     };
 
