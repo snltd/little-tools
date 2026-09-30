@@ -13,7 +13,7 @@ use regex::Regex;
 use std::process;
 
 #[derive(Parser)]
-#[command(about = "Batch renamer.")]
+#[command(version, about = "Batch renamer.")]
 struct Cli {
     /// Print the rename operations without doing them
     #[arg(short, long, global = true)]

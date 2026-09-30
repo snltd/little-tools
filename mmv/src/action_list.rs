@@ -1,7 +1,7 @@
 use crate::mv;
 use crate::new_name;
 use crate::types::{GlobalOpts, RenameAction};
-use anyhow::{Context, bail, ensure};
+use anyhow::{bail, ensure, Context};
 use camino::{Utf8Path, Utf8PathBuf};
 use std::collections::HashSet;
 
@@ -43,7 +43,6 @@ impl ActionList {
         let mut err = false;
 
         for action in self.0.iter() {
-            dbg!(&action);
             if seen.contains(&action.dest) {
                 let collisions: Vec<String> = self
                     .0
