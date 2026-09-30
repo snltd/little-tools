@@ -1,5 +1,21 @@
 use regex::Regex;
 
+#[derive(Debug)]
+pub enum RenameAction {
+    ReplaceRegex(ReplaceRegexOpts),
+    ReplaceLiteral(ReplaceLiteralOpts),
+    Prefix(String),
+    Suffix(String),
+    Renumber(RenumberOpts),
+    Extension(String),
+}
+
+#[derive(Debug)]
+pub enum Replacements {
+    Indices(Vec<usize>),
+    All,
+}
+
 #[derive(Debug, Default)]
 pub struct GlobalOpts {
     pub noop: bool,
@@ -9,16 +25,6 @@ pub struct GlobalOpts {
     pub full: bool,
     pub include_ext: bool,
     pub git: bool,
-}
-
-#[derive(Debug)]
-pub enum RenameAction {
-    ReplaceRegex(ReplaceRegexOpts),
-    ReplaceLiteral(ReplaceLiteralOpts),
-    Prefix(String),
-    Suffix(String),
-    Renumber(RenumberOpts),
-    Extension(String),
 }
 
 #[derive(Debug)]
@@ -40,10 +46,4 @@ pub struct RenumberOpts {
     pub index: usize,
     pub by: i64,
     pub zeros: Option<u8>,
-}
-
-#[derive(Debug)]
-pub enum Replacements {
-    Indices(Vec<usize>),
-    All,
 }

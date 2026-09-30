@@ -1,4 +1,4 @@
-use crate::action;
+use crate::mv;
 use crate::new_name;
 use crate::types::{GlobalOpts, RenameAction};
 use anyhow::{Context, bail, ensure};
@@ -74,7 +74,7 @@ impl ActionList {
 
     pub fn rename(&self, opts: &GlobalOpts) -> anyhow::Result<()> {
         for f in self.0.iter() {
-            if let Err(e) = action::rename_file(&f.src, &f.dest, opts) {
+            if let Err(e) = mv::rename_file(&f.src, &f.dest, opts) {
                 bail!("ERROR: renaming {} -> {}: {e:#}", f.src, f.dest);
             }
         }
@@ -106,7 +106,7 @@ fn new_path(
     // the user has specified that we operate on the whole filename
     let (source_stem, source_ext) = file_parts(&source, global_opts.include_ext)?;
 
-    let new_name = new_name::new_name(source_stem, rename_action)?;
+    let new_name = new_name::for_stem(source_stem, rename_action)?;
 
     let new_filename = if let Some(ext) = source_ext {
         format!("{new_name}.{ext}")
