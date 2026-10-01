@@ -141,7 +141,6 @@ mod test {
 
         cargo_bin_cmd!("mmv")
             .arg("--clobber")
-            .arg("replace")
             .arg(".recoded")
             .arg("")
             .arg(&wanted_1)
