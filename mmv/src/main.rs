@@ -48,12 +48,7 @@ enum Commands {
     #[command(alias = "r")]
     Replace {
         /// Replace nth occurrence of FROM. Zero-indexed, and can be specified multiple times
-        #[arg(
-            short = 'N',
-            long = "replace-nth",
-            value_parser,
-            conflicts_with = "replace_all"
-        )]
+        #[arg(short = 'i', value_parser, conflicts_with = "replace_all")]
         index: Vec<usize>,
         /// Replace all occurrences of FROM. If neither --replace-all nor --replace-nth are
         /// supplied, the first match will be replaced
@@ -117,7 +112,30 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
+    let mut args: Vec<String> = std::env::args().collect();
+
+    // We'll make "replace" the default command, like it used to be
+    const RESERVED_WORDS: &[&str] = &[
+        "replace",
+        "prefix",
+        "suffix",
+        "renumber",
+        "extension",
+        "help",
+        "-h",
+        "--help",
+        "-V",
+        "--version",
+    ];
+
+    if args
+        .get(1)
+        .is_some_and(|a| !RESERVED_WORDS.contains(&a.as_str()))
+    {
+        args.insert(1, "replace".into());
+    }
+
+    let cli = Cli::parse_from(args);
 
     let global_opts = GlobalOpts {
         noop: cli.noop,
