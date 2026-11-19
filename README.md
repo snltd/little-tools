@@ -5,8 +5,9 @@
 A bunch of little command-line tools that I find useful. Most of them are
 rewrites of shell or Ruby scripts I've had kicking around for years.
 
-Install them with `cargo install --path <name>`, or do the whole lot in one go
-with `./install.sh`.
+Install them with `cargo install --path <name>`, or, if you have
+[`just`](https://just.systems/man/en/) do the whole lot in one go with
+`just install`.
 
 Everything has `--help`, but, briefly:
 
