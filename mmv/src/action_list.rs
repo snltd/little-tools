@@ -1,7 +1,7 @@
 use crate::mv;
 use crate::new_name;
 use crate::types::{GlobalOpts, RenameAction};
-use anyhow::{bail, ensure, Context};
+use anyhow::{Context, bail, ensure};
 use camino::{Utf8Path, Utf8PathBuf};
 use std::collections::HashSet;
 
@@ -93,9 +93,13 @@ fn new_path(
     rename_action: &RenameAction,
     global_opts: &GlobalOpts,
 ) -> anyhow::Result<Utf8PathBuf> {
-    let source = path
-        .canonicalize_utf8()
-        .with_context(|| format!("cannot canonicalize {path}"))?;
+    let source = if global_opts.git {
+        path
+    } else {
+        &path
+            .canonicalize_utf8()
+            .with_context(|| format!("cannot canonicalize {path}"))?
+    };
 
     let dir = source
         .parent()
@@ -103,7 +107,7 @@ fn new_path(
 
     // We normally only operate on the stem of the filename. Pass that to the renamer, unless
     // the user has specified that we operate on the whole filename
-    let (source_stem, source_ext) = file_parts(&source, global_opts.include_ext)?;
+    let (source_stem, source_ext) = file_parts(source, global_opts.include_ext)?;
 
     let new_name = new_name::for_stem(source_stem, rename_action)?;
 
